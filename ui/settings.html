@@ -1,0 +1,907 @@
+<!-- 记忆管理并发系统 - 设置面板 -->
+<div id="memory-manager-settings" class="mm-settings">
+  <div class="mm-settings-header">
+    <h3>设置</h3>
+    <button id="mm-settings-close" class="mm-btn mm-btn-icon">
+      <i class="fa-solid fa-times"></i>
+    </button>
+  </div>
+
+  <div class="mm-settings-content">
+    <!-- 基础设置 -->
+    <div class="mm-settings-section">
+      <h4>基础设置</h4>
+      <div class="mm-setting-item">
+        <label>参考上下文轮次</label>
+        <div class="mm-slider-row">
+          <input
+            type="range"
+            id="mm-context-rounds"
+            value="5"
+            min="0"
+            max="5"
+            step="1"
+          />
+          <span id="mm-context-rounds-value">5</span>
+        </div>
+        <small class="mm-hint"
+          >每轮包含1条用户消息+1条回复，0=不读取上下文</small
+        >
+      </div>
+
+      <!-- 功能开关折叠卡片 -->
+      <div class="mm-collapse-card" id="mm-feature-switch-card">
+        <div class="mm-collapse-header" id="mm-feature-switch-toggle">
+          <div class="mm-collapse-title">
+            <i class="fa-solid fa-toggle-on"></i>
+            <span>功能开关</span>
+          </div>
+          <i class="fa-solid fa-chevron-down mm-collapse-arrow"></i>
+        </div>
+        <div class="mm-collapse-body">
+          <div class="mm-checkbox-grid">
+            <div class="mm-setting-item">
+              <label>
+                <input type="checkbox" id="mm-show-float-ball" />
+                显示悬浮球
+              </label>
+            </div>
+            <div class="mm-setting-item">
+              <label>
+                <input type="checkbox" id="mm-show-logs" />
+                显示处理日志
+              </label>
+            </div>
+            <div class="mm-setting-item">
+              <label>
+                <input type="checkbox" id="mm-show-request-preview" />
+                发送前检查
+              </label>
+            </div>
+            <div class="mm-setting-item">
+              <label>
+                <input type="checkbox" id="mm-send-index-only" />
+                仅发送索引
+              </label>
+            </div>
+            <div class="mm-setting-item">
+              <label>
+                <input type="checkbox" id="mm-show-summary-check" />
+                汇总检查
+              </label>
+            </div>
+            <div class="mm-setting-item">
+              <label title="截取剧情末尾200字并注入到汇总检查">
+                <input type="checkbox" id="mm-enable-recent-plot" checked />
+                启用剧情末尾
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 记忆搜索助手折叠卡片 -->
+      <div class="mm-collapse-card" id="mm-interactive-search-card">
+        <div class="mm-collapse-header" id="mm-interactive-search-toggle">
+          <div class="mm-collapse-title">
+            <i class="fa-solid fa-brain"></i>
+            <span>记忆搜索助手</span>
+            <span class="mm-collapse-badge" id="mm-interactive-search-badge">关闭</span>
+          </div>
+          <i class="fa-solid fa-chevron-down mm-collapse-arrow"></i>
+        </div>
+        <div class="mm-collapse-body">
+          <div class="mm-setting-item">
+            <label>
+              <input type="checkbox" id="mm-enable-interactive-search" />
+              启用记忆搜索助手
+            </label>
+            <small class="mm-hint">开启后会在索引合并前弹出搜索助手界面</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- 剧情优化助手折叠卡片 -->
+      <div class="mm-collapse-card" id="mm-plot-optimize-card">
+        <div class="mm-collapse-header" id="mm-plot-optimize-toggle">
+          <div class="mm-collapse-title">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <span>剧情优化助手</span>
+            <span class="mm-collapse-badge" id="mm-plot-optimize-badge">关闭</span>
+          </div>
+          <i class="fa-solid fa-chevron-down mm-collapse-arrow"></i>
+        </div>
+        <div class="mm-collapse-body">
+          <div class="mm-index-mode-content">
+            <!-- 启用开关 -->
+            <div class="mm-setting-item">
+              <label>
+                <input type="checkbox" id="mm-enable-plot-optimize" />
+                启用剧情优化助手
+              </label>
+              <small class="mm-hint">发送消息时自动生成剧情优化建议，确认后注入到消息中</small>
+            </div>
+
+            <!-- 剧情优化 API 配置卡片 -->
+            <div id="mm-plot-optimize-config-card" class="mm-ai-config-item" style="margin-top: 10px;">
+              <div class="mm-config-info">
+                <span class="mm-config-name">
+                  <i class="fa-solid fa-robot"></i>
+                  剧情优化
+                </span>
+                <span class="mm-config-model" id="mm-plot-optimize-model-display">未配置</span>
+              </div>
+              <div class="mm-config-actions">
+                <button type="button" id="mm-plot-optimize-edit" class="mm-btn mm-btn-xs mm-btn-primary" title="编辑配置">
+                  <i class="fa-solid fa-pen"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 标签过滤折叠卡片 -->
+      <div class="mm-collapse-card" id="mm-tag-filter-card">
+        <div class="mm-collapse-header" id="mm-tag-filter-toggle">
+          <div class="mm-collapse-title">
+            <i class="fa-solid fa-tags"></i>
+            <span>标签过滤</span>
+            <span class="mm-collapse-badge" id="mm-tag-filter-badge">关闭</span>
+          </div>
+          <i class="fa-solid fa-chevron-down mm-collapse-arrow"></i>
+        </div>
+        <div class="mm-collapse-body">
+          <!-- 提取模式区域 -->
+          <div class="mm-tag-section">
+            <div class="mm-tag-section-header">
+              <label class="mm-tag-mode-checkbox">
+                <input type="checkbox" id="mm-enable-extract" />
+                <span class="mm-tag-mode-label">提取模式</span>
+              </label>
+            </div>
+            <div class="mm-tag-container mm-extract-container" id="mm-extract-container">
+              <div class="mm-tag-list" id="mm-extract-tag-list">
+                <!-- 动态生成 tag chips -->
+              </div>
+              <div class="mm-tag-input-row">
+                <input
+                  type="text"
+                  class="mm-tag-input"
+                  id="mm-extract-tag-input"
+                  placeholder="输入标签名，多个用逗号分隔..."
+                />
+                <button class="mm-btn mm-btn-small mm-btn-primary" id="mm-extract-tag-save">
+                  <i class="fa-solid fa-plus"></i>
+                </button>
+              </div>
+            </div>
+            <small class="mm-hint">只保留指定标签 &lt;tag&gt;...&lt;/tag&gt; 内的内容</small>
+          </div>
+
+          <!-- 排除模式区域 -->
+          <div class="mm-tag-section">
+            <div class="mm-tag-section-header">
+              <label class="mm-tag-mode-checkbox">
+                <input type="checkbox" id="mm-enable-exclude" />
+                <span class="mm-tag-mode-label">排除模式</span>
+              </label>
+            </div>
+            <div class="mm-tag-container mm-exclude-container" id="mm-exclude-container">
+              <div class="mm-tag-list" id="mm-exclude-tag-list">
+                <!-- 动态生成 tag chips -->
+              </div>
+              <div class="mm-tag-input-row">
+                <input
+                  type="text"
+                  class="mm-tag-input"
+                  id="mm-exclude-tag-input"
+                  placeholder="输入标签名，多个用逗号分隔..."
+                />
+                <button class="mm-btn mm-btn-small mm-btn-primary" id="mm-exclude-tag-save">
+                  <i class="fa-solid fa-plus"></i>
+                </button>
+              </div>
+            </div>
+            <small class="mm-hint">移除指定标签 &lt;tag&gt;...&lt;/tag&gt; 及其内容</small>
+          </div>
+
+          <label class="mm-tag-case-option">
+            <input type="checkbox" id="mm-tag-case-sensitive" />
+            <span>区分大小写</span>
+          </label>
+
+          <small class="mm-hint mm-tag-hint">
+            <strong>提示：</strong>两种模式可同时启用，先提取后排除
+          </small>
+        </div>
+      </div>
+
+      <!-- 世界书控制折叠卡片 -->
+      <div class="mm-collapse-card" id="mm-worldbook-control-card">
+        <div class="mm-collapse-header" id="mm-worldbook-control-toggle">
+          <div class="mm-collapse-title">
+            <i class="fa-solid fa-book"></i>
+            <span>世界书控制</span>
+            <span class="mm-collapse-badge" id="mm-wb-control-badge">未选择</span>
+          </div>
+          <i class="fa-solid fa-chevron-down mm-collapse-arrow"></i>
+        </div>
+        <div class="mm-collapse-body">
+          <!-- 世界书控制内容区域 -->
+          <div class="mm-worldbook-control-content">
+            <!-- 世界书列表区域 -->
+            <div class="mm-wb-section">
+              <div class="mm-wb-section-header">
+                <span class="mm-wb-section-title">世界书列表</span>
+                <button type="button" id="mm-wb-refresh" class="mm-btn mm-btn-xs mm-btn-secondary" title="刷新列表">
+                  <i class="fa-solid fa-sync"></i>
+                </button>
+              </div>
+              <div class="mm-wb-list-container" id="mm-wb-list-container">
+                <div class="mm-wb-loading" id="mm-wb-loading">
+                  <i class="fa-solid fa-spinner fa-spin"></i>
+                  <span>加载中...</span>
+                </div>
+                <div class="mm-wb-list" id="mm-wb-list">
+                  <!-- 动态生成世界书列表项 -->
+                </div>
+                <div class="mm-wb-empty" id="mm-wb-empty" style="display: none;">
+                  <i class="fa-solid fa-book-open"></i>
+                  <span>暂无世界书</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 递归控制按钮 -->
+            <div class="mm-wb-recursion-controls" id="mm-wb-recursion-controls" style="display: none;">
+              <div class="mm-wb-recursion-row">
+                <button type="button" id="mm-wb-exclude-recursion" class="mm-btn mm-btn-xs mm-btn-secondary mm-wb-recursion-btn" title="不可递归：条目不会被其他条目激活">
+                  <i class="fa-solid fa-ban"></i>
+                  <span>不可递归</span>
+                </button>
+                <button type="button" id="mm-wb-prevent-recursion" class="mm-btn mm-btn-xs mm-btn-secondary mm-wb-recursion-btn" title="防止递归：本条目将不会激活其他条目">
+                  <i class="fa-solid fa-shield-halved"></i>
+                  <span>防止递归</span>
+                </button>
+              </div>
+              <small class="mm-hint mm-recursion-hint">
+                启用后将对选中世界书的全部条目生效，包括后续新增的条目
+              </small>
+            </div>
+
+            <!-- 条目统计区域 -->
+            <div class="mm-wb-section mm-wb-entries-section" id="mm-wb-entries-section" style="display: none;">
+              <div class="mm-wb-section-header">
+                <span class="mm-wb-section-title">
+                  <span id="mm-wb-selected-name">-</span> 的条目统计
+                </span>
+              </div>
+              <div class="mm-wb-stats-container" id="mm-wb-stats-container">
+                <div class="mm-wb-stats-loading" id="mm-wb-stats-loading" style="display: none;">
+                  <i class="fa-solid fa-spinner fa-spin"></i>
+                  <span>统计中...</span>
+                </div>
+                <div class="mm-wb-stats-content" id="mm-wb-stats-content">
+                  <div class="mm-wb-stat-item">
+                    <span class="mm-wb-stat-label">总条目数</span>
+                    <span class="mm-wb-stat-value" id="mm-wb-total-count">0</span>
+                  </div>
+                  <div class="mm-wb-stat-item">
+                    <span class="mm-wb-stat-label">启用条目</span>
+                    <span class="mm-wb-stat-value mm-stat-enabled" id="mm-wb-enabled-count">0</span>
+                  </div>
+                  <div class="mm-wb-stat-item">
+                    <span class="mm-wb-stat-label">禁用条目</span>
+                    <span class="mm-wb-stat-value mm-stat-disabled" id="mm-wb-disabled-count">0</span>
+                  </div>
+                  <div class="mm-wb-stat-item">
+                    <span class="mm-wb-stat-label">常驻条目</span>
+                    <span class="mm-wb-stat-value mm-stat-constant" id="mm-wb-constant-count">0</span>
+                  </div>
+                </div>
+                <div class="mm-wb-stats-empty" id="mm-wb-stats-empty" style="display: none;">
+                  <i class="fa-solid fa-file-circle-question"></i>
+                  <span>该世界书暂无条目</span>
+                </div>
+              </div>
+            </div>
+
+            <small class="mm-hint mm-wb-hint">
+              勾选世界书后可查看条目统计
+            </small>
+          </div>
+        </div>
+      </div>
+
+      <!-- 索引模式折叠卡片 - 仅在"仅发送索引"启用时显示 -->
+      <div class="mm-collapse-card" id="mm-index-mode-card" style="display: none;">
+        <div class="mm-collapse-header" id="mm-index-mode-toggle">
+          <div class="mm-collapse-title">
+            <i class="fa-solid fa-layer-group"></i>
+            <span>索引模式</span>
+          </div>
+          <i class="fa-solid fa-chevron-down mm-collapse-arrow"></i>
+        </div>
+        <div class="mm-collapse-body">
+          <div class="mm-index-mode-content">
+            <!-- 索引合并开关 -->
+            <div class="mm-setting-item">
+              <label>
+                <input type="checkbox" id="mm-index-merge-enabled" />
+                索引合并
+              </label>
+              <small class="mm-hint">若不勾选，默认使用并发模式（多 API 分发）</small>
+            </div>
+
+            <!-- 索引合并 API 配置卡片（仅在勾选索引合并后显示） -->
+            <div id="mm-index-merge-config-card" class="mm-ai-config-item" style="display: none; margin-top: 10px;">
+              <div class="mm-config-info">
+                <span class="mm-config-name">
+                  <i class="fa-solid fa-robot"></i>
+                  索引合并
+                </span>
+                <span class="mm-config-model" id="mm-index-merge-model-display">未配置</span>
+              </div>
+              <div class="mm-config-actions">
+                <button type="button" id="mm-index-merge-edit" class="mm-btn mm-btn-xs mm-btn-primary" title="编辑配置">
+                  <i class="fa-solid fa-pen"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI 配置列表（可折叠） -->
+      <div class="mm-collapse-card" id="mm-ai-config-card">
+        <div class="mm-collapse-header" id="mm-ai-config-toggle">
+          <div class="mm-collapse-title">
+            <i class="fa-solid fa-robot"></i>
+            <span>AI 配置</span>
+          </div>
+          <i class="fa-solid fa-chevron-down mm-collapse-arrow"></i>
+        </div>
+        <div class="mm-collapse-body">
+          <small class="mm-hint">为每个世界书分类配置独立的 AI</small>
+          <div id="mm-ai-config-list" class="mm-ai-config-list">
+            <!-- 动态生成 -->
+          </div>
+          <div class="mm-ai-config-actions">
+            <button id="mm-add-config" class="mm-btn mm-btn-secondary">
+              <i class="fa-solid fa-plus"></i> 添加配置
+            </button>
+            <button id="mm-export-config" class="mm-btn mm-btn-secondary">
+              <i class="fa-solid fa-download"></i> 导出配置
+            </button>
+            <button id="mm-import-config" class="mm-btn mm-btn-secondary">
+              <i class="fa-solid fa-upload"></i> 导入配置
+            </button>
+            <button id="mm-reset-config" class="mm-btn mm-btn-danger">
+              <i class="fa-solid fa-trash"></i> 重置配置
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 配置管理（可折叠） -->
+      <div class="mm-collapse-card" id="mm-config-manage-card">
+        <div class="mm-collapse-header" id="mm-config-manage-toggle">
+          <div class="mm-collapse-title">
+            <i class="fa-solid fa-sliders"></i>
+            <span>配置管理</span>
+          </div>
+          <i class="fa-solid fa-chevron-down mm-collapse-arrow"></i>
+        </div>
+        <div class="mm-collapse-body">
+          <div class="mm-setting-actions">
+            <button id="mm-edit-prompt" class="mm-btn mm-btn-primary">
+              <i class="fa-solid fa-pen-to-square"></i> 选择提示词
+            </button>
+            <button id="mm-flow-config" class="mm-btn mm-btn-secondary" style="display: none;">
+              <i class="fa-solid fa-list-ol"></i> 流程配置
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 提示词编辑弹窗 -->
+  <div id="mm-prompt-editor-modal" class="mm-modal">
+    <div class="mm-modal-content mm-modal-large">
+      <div class="mm-modal-header">
+        <h4>选择提示词界面</h4>
+        <button class="mm-modal-close mm-btn mm-btn-icon">
+          <i class="fa-solid fa-times"></i>
+        </button>
+      </div>
+
+      <div class="mm-modal-body">
+        <!-- 提示词类型切换 -->
+        <div class="mm-form-group">
+          <label>提示词类型 <span class="mm-required">*</span></label>
+          <div class="mm-prompt-type-tabs">
+            <button id="mm-prompt-type-keywords" class="mm-tab-btn mm-tab-active" data-type="keywords">
+              <i class="fa-solid fa-key"></i> 关键词提示词
+            </button>
+            <button id="mm-prompt-type-historical" class="mm-tab-btn" data-type="historical">
+              <i class="fa-solid fa-clock-rotate-left"></i> 历史事件提示词
+            </button>
+            <button id="mm-prompt-type-plot-optimize" class="mm-tab-btn" data-type="plot-optimize">
+              <i class="fa-solid fa-wand-magic-sparkles"></i> 剧情优化提示词
+            </button>
+          </div>
+          <small class="mm-hint">关键词提示词用于分类/并发/索引合并API；历史事件提示词用于总结世界书API；剧情优化助手用于剧情优化功能</small>
+        </div>
+
+        <!-- 文件选择 -->
+        <div class="mm-form-group">
+          <label>选择提示词文件 <span class="mm-required">*</span></label>
+          <select id="mm-prompt-file-select" class="mm-prompt-select">
+            <!-- 动态生成选项 -->
+          </select>
+          <small class="mm-hint">选择后使用该提示词预设</small>
+        </div>
+
+        <!-- 字段选择 -->
+        <div class="mm-form-group">
+          <div class="mm-field-select-row">
+            <label>选择要编辑的字段 <span class="mm-required">*</span></label>
+          </div>
+          <select id="mm-prompt-field-select" class="mm-prompt-select">
+            <option value="mainPrompt">主提示词 (mainPrompt → &lt;数据注入区&gt;前)</option>
+            <option value="systemPrompt">辅助提示词 (systemPrompt → &lt;数据注入区&gt;后)</option>
+            <option value="finalSystemDirective">最终注入词 (finalSystemDirective)</option>
+          </select>
+          <small class="mm-hint">mainPrompt 在数据注入前，systemPrompt 在数据注入后，finalSystemDirective 为最终注入</small>
+        </div>
+
+        <!-- 编辑区域 - 可拖动放大 -->
+        <div class="mm-form-group">
+          <label id="mm-current-field-label"
+            >主提示词内容 <span class="mm-required">*</span></label
+          >
+          <div class="mm-resizable-editor-container">
+            <textarea
+              id="mm-prompt-editor"
+              class="mm-prompt-editor"
+              rows="20"
+            ></textarea>
+            <div class="mm-resize-handle"></div>
+          </div>
+          <small class="mm-hint">
+            编辑后点击保存按钮保存更改。
+            提示内必须包含：<code>&lt;数据注入区&gt;...&lt;/数据注入区&gt;</code>、<code>sulv1</code>、<code>sulv2</code>、<code
+              >sulv4</code
+            >
+          </small>
+        </div>
+      </div>
+
+      <div class="mm-modal-footer">
+        <div class="mm-modal-actions-left">
+          <button id="mm-prompt-delete" class="mm-btn mm-btn-danger">
+            <i class="fa-solid fa-trash"></i> 删除
+          </button>
+          <button id="mm-prompt-restore-default" class="mm-btn mm-btn-warning">
+            <i class="fa-solid fa-rotate-left"></i> 恢复默认
+          </button>
+          <button id="mm-prompt-import" class="mm-btn mm-btn-secondary">
+            <i class="fa-solid fa-upload"></i> 导入
+          </button>
+          <button id="mm-prompt-export" class="mm-btn mm-btn-secondary">
+            <i class="fa-solid fa-download"></i> 导出
+          </button>
+        </div>
+        <div class="mm-modal-actions-right">
+          <button id="mm-prompt-save-as" class="mm-btn mm-btn-secondary">
+            <i class="fa-solid fa-copy"></i> 另存为
+          </button>
+          <button id="mm-prompt-cancel" class="mm-btn mm-btn-secondary">
+            取消
+          </button>
+          <button id="mm-prompt-save" class="mm-btn mm-btn-primary">
+            保存
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 剧情优化助手弹窗 -->
+<div id="mm-plot-optimize-modal" class="mm-modal">
+  <div class="mm-modal-content mm-modal-large" id="mm-plot-optimize-modal-content">
+    <div class="mm-modal-header" id="mm-plot-optimize-modal-header">
+      <h4><i class="fa-solid fa-wand-magic-sparkles"></i> 剧情优化助手</h4>
+      <button class="mm-modal-close mm-btn mm-btn-icon">
+        <i class="fa-solid fa-times"></i>
+      </button>
+    </div>
+    <div class="mm-modal-body" id="mm-plot-optimize-modal-body">
+      <!-- 交互区域 -->
+      <div class="mm-plot-optimize-chat-container" id="mm-plot-optimize-chat-container">
+        <div class="mm-plot-optimize-chat-messages" id="mm-plot-optimize-chat-messages">
+          <!-- 动态生成消息 -->
+        </div>
+      </div>
+
+      <!-- 输入区域 -->
+      <div class="mm-plot-optimize-input-area">
+        <textarea
+          id="mm-plot-optimize-input"
+          class="mm-plot-optimize-input"
+          placeholder="输入你的剧情优化需求..."
+          rows="3"
+        ></textarea>
+        <div class="mm-plot-optimize-input-actions">
+          <button id="mm-plot-optimize-send-btn" class="mm-btn mm-btn-primary">
+            <i class="fa-solid fa-paper-plane"></i> 发送
+          </button>
+          <button id="mm-plot-optimize-confirm-btn" class="mm-btn mm-btn-secondary">
+            <i class="fa-solid fa-check"></i> 确认注入
+          </button>
+        </div>
+      </div>
+
+      <!-- 世界书选择折叠容器 -->
+      <div class="mm-collapse-card mm-plot-optimize-books-card" id="mm-plot-optimize-books-card">
+        <div class="mm-collapse-header" id="mm-plot-optimize-books-toggle">
+          <div class="mm-collapse-title">
+            <i class="fa-solid fa-book"></i>
+            <span>选择世界书</span>
+            <span class="mm-collapse-badge" id="mm-plot-optimize-books-badge">已选 0</span>
+          </div>
+          <div class="mm-collapse-actions">
+            <button type="button" id="mm-plot-optimize-books-refresh" class="mm-btn mm-btn-xs mm-btn-secondary" title="刷新世界书列表">
+              <i class="fa-solid fa-rotate-right"></i>
+            </button>
+          </div>
+          <i class="fa-solid fa-chevron-down mm-collapse-arrow"></i>
+        </div>
+        <div class="mm-collapse-body">
+          <div class="mm-plot-optimize-books-content">
+            <div id="mm-plot-optimize-books-loading" style="display: none; justify-content: center; align-items: center; padding: 20px;">
+              <i class="fa-solid fa-spinner fa-spin" style="margin-right: 8px;"></i><span>加载中...</span>
+            </div>
+            <div id="mm-plot-optimize-books-empty" style="display: none; justify-content: center; align-items: center; padding: 20px; color: var(--mm-text-secondary);">
+              <i class="fa-solid fa-book" style="margin-right: 8px;"></i><span>未找到世界书</span>
+            </div>
+            <div class="mm-plot-optimize-books-list" id="mm-plot-optimize-books-list">
+              <!-- 动态生成世界书列表 -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div id="mm-ai-config-modal" class="mm-modal">
+  <div class="mm-modal-content">
+    <div class="mm-modal-header">
+      <h4>配置 AI: <span id="mm-config-category-name">-</span></h4>
+      <button class="mm-modal-close mm-btn mm-btn-icon">
+        <i class="fa-solid fa-times"></i>
+      </button>
+    </div>
+
+    <div class="mm-modal-body">
+      <!-- Tab 切换（仅剧情优化时显示） -->
+      <div id="mm-config-tabs" class="mm-config-tabs" style="display: none;">
+        <button id="mm-config-tab-api" class="mm-config-tab active" data-tab="api">
+          <i class="fa-solid fa-robot"></i> API 配置
+        </button>
+        <button id="mm-config-tab-context" class="mm-config-tab" data-tab="context">
+          <i class="fa-solid fa-layer-group"></i> 上下文选择
+        </button>
+      </div>
+
+      <!-- Tab 1: API 配置 -->
+      <div id="mm-config-tab-api-content" class="mm-config-tab-content active">
+      <div class="mm-form-group">
+        <label>API 格式</label>
+        <div class="mm-radio-group">
+          <label
+            ><input type="radio" name="mm-api-format" value="openai" checked />
+            OpenAI 兼容</label
+          >
+          <label
+            ><input type="radio" name="mm-api-format" value="anthropic" />
+            Anthropic</label
+          >
+          <label
+            ><input type="radio" name="mm-api-format" value="google" />
+            Google</label
+          >
+          <label
+            ><input type="radio" name="mm-api-format" value="custom" />
+            自定义</label
+          >
+        </div>
+      </div>
+
+      <div class="mm-form-group">
+        <label>API URL <span class="mm-required">*</span></label>
+        <input
+          type="text"
+          id="mm-config-url"
+          placeholder="https://api.deepseek.com/v1"
+        />
+        <small class="mm-hint">填写到 /v1 即可，会自动补全完整路径</small>
+      </div>
+
+      <div class="mm-form-group">
+        <label>API Key</label>
+        <input type="password" id="mm-config-key" placeholder="sk-..." />
+        <small class="mm-hint">本地模型可留空</small>
+      </div>
+
+      <div class="mm-form-group">
+        <label>模型名称 <span class="mm-required">*</span></label>
+        <div class="mm-model-input-row">
+          <select id="mm-config-model" class="mm-model-select">
+            <option value="" disabled selected>--- 请获取模型 ---</option>
+          </select>
+          <button
+            type="button"
+            id="mm-fetch-models"
+            class="mm-btn mm-btn-secondary"
+            title="从API获取模型列表"
+          >
+            <i class="fa-solid fa-download"></i> 获取模型
+          </button>
+        </div>
+      </div>
+
+      <div class="mm-form-row">
+        <div class="mm-form-group">
+          <label>Max Tokens</label>
+          <input
+            type="number"
+            id="mm-config-max-tokens"
+            value="2000"
+            min="100"
+            max="32000"
+          />
+        </div>
+        <div class="mm-form-group">
+          <label>Temperature</label>
+          <input
+            type="range"
+            id="mm-config-temperature"
+            value="0.7"
+            min="0"
+            max="1"
+            step="0.1"
+          />
+          <span id="mm-config-temperature-value">0.7</span>
+        </div>
+      </div>
+
+      <!-- 关联性阈值 -->
+      <div class="mm-form-group">
+        <label>关联性阈值</label>
+        <div class="mm-form-row">
+          <input
+            type="range"
+            id="mm-config-relevance"
+            value="0.6"
+            min="0.1"
+            max="1"
+            step="0.1"
+            style="flex: 1"
+          />
+          <span
+            id="mm-config-relevance-value"
+            style="min-width: 30px; text-align: center"
+            >0.6</span
+          >
+        </div>
+        <small class="mm-hint"
+          >数值越小越严格，数值越大越宽松 (0.1-1.0)。占位符：<code
+            >sulv1</code
+          ></small
+        >
+      </div>
+
+      <!-- 关键词数量 -->
+      <div id="mm-config-keywords-group" class="mm-form-group">
+        <label>关键词数量 (1-50)</label>
+        <input
+          type="number"
+          id="mm-config-max-keywords"
+          value="10"
+          min="1"
+          max="50"
+        />
+        <small class="mm-hint"
+          >AI 最多提取的关键词数量。占位符：<code>sulv4</code></small
+        >
+      </div>
+
+      <!-- 总结世界书：历史事件数量 -->
+      <div id="mm-config-events-group" class="mm-form-group mm-hidden">
+        <label>历史事件数量 (1-35)</label>
+        <input
+          type="number"
+          id="mm-config-max-events"
+          value="15"
+          min="1"
+          max="35"
+        />
+        <small class="mm-hint"
+          >AI 最多提取的历史事件数量。占位符：<code>sulv2</code></small
+        >
+      </div>
+
+      <!-- 自定义格式专用 -->
+      <div id="mm-custom-format-options" class="mm-hidden">
+        <div class="mm-form-group">
+          <label>自定义请求模板 (JSON)</label>
+          <textarea
+            id="mm-config-custom-template"
+            rows="5"
+            placeholder='{"model": "{{model}}", "prompt": "{{system}}\n\n{{user}}"}'
+          ></textarea>
+          <small class="mm-hint"
+            >可用变量: {{system}}, {{user}}, {{model}}, {{max_tokens}},
+            {{temperature}}</small
+          >
+        </div>
+        <div class="mm-form-group">
+          <label>响应解析路径</label>
+          <input
+            type="text"
+            id="mm-config-response-path"
+            placeholder="choices.0.message.content"
+          />
+        </div>
+      </div>
+
+      <div class="mm-form-group">
+        <button id="mm-test-connection" class="mm-btn mm-btn-secondary">
+          <i class="fa-solid fa-link"></i> 测试连接
+        </button>
+        <span id="mm-test-result" class="mm-test-result"></span>
+      </div>
+      </div><!-- /mm-config-tab-api-content -->
+
+      <!-- Tab 2: 上下文选择（仅剧情优化时显示） -->
+      <div id="mm-config-tab-context-content" class="mm-config-tab-content" style="display: none;">
+        <!-- 上下文参考数量 -->
+        <div class="mm-form-group">
+          <label><i class="fa-solid fa-comments"></i> 上下文参考轮次</label>
+          <div class="mm-slider-row">
+            <input
+              type="range"
+              id="mm-plot-context-rounds"
+              value="5"
+              min="0"
+              max="10"
+              step="1"
+            />
+            <span id="mm-plot-context-rounds-value">5</span>
+          </div>
+          <small class="mm-hint">每轮包含1条用户消息+1条回复，0=不读取上下文</small>
+        </div>
+
+        <!-- 世界书选择 -->
+        <div class="mm-collapse-card expanded" id="mm-config-worldbook-card">
+          <div class="mm-collapse-header" id="mm-config-worldbook-toggle">
+            <div class="mm-collapse-title">
+              <i class="fa-solid fa-book"></i>
+              <span>世界书选择</span>
+              <span class="mm-collapse-badge" id="mm-config-worldbook-badge">已选 0</span>
+            </div>
+            <div class="mm-collapse-actions">
+              <button type="button" id="mm-config-worldbook-refresh" class="mm-btn mm-btn-xs mm-btn-secondary" title="刷新世界书列表">
+                <i class="fa-solid fa-rotate-right"></i>
+              </button>
+            </div>
+            <i class="fa-solid fa-chevron-down mm-collapse-arrow"></i>
+          </div>
+          <div class="mm-collapse-body">
+            <div class="mm-config-worldbook-content">
+              <div id="mm-config-worldbook-loading" class="mm-loading-state" style="display: none;">
+                <i class="fa-solid fa-spinner fa-spin"></i><span>加载中...</span>
+              </div>
+              <div id="mm-config-worldbook-empty" class="mm-empty-state" style="display: none;">
+                <i class="fa-solid fa-book-open"></i><span>未找到世界书</span>
+              </div>
+              <div class="mm-config-worldbook-list" id="mm-config-worldbook-list">
+                <!-- 动态生成世界书列表 -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 角色描述预览 -->
+        <div class="mm-collapse-card" id="mm-config-char-card">
+          <div class="mm-collapse-header" id="mm-config-char-toggle">
+            <div class="mm-collapse-title">
+              <i class="fa-solid fa-user"></i>
+              <span>角色描述预览</span>
+              <span class="mm-collapse-badge" id="mm-config-char-badge">-</span>
+            </div>
+            <div class="mm-collapse-actions">
+              <button type="button" id="mm-config-char-refresh" class="mm-btn mm-btn-xs mm-btn-secondary" title="刷新角色描述">
+                <i class="fa-solid fa-rotate-right"></i>
+              </button>
+            </div>
+            <i class="fa-solid fa-chevron-down mm-collapse-arrow"></i>
+          </div>
+          <div class="mm-collapse-body">
+            <div class="mm-config-char-content">
+              <div class="mm-config-char-header">
+                <div class="mm-config-char-info">
+                  <span class="mm-config-char-name" id="mm-config-char-name">未选择角色</span>
+                  <span class="mm-config-char-tokens" id="mm-config-char-tokens">Tokens: -</span>
+                </div>
+                <label class="mm-config-char-include">
+                  <input type="checkbox" id="mm-config-char-include-checkbox" checked />
+                  <span>包含角色描述</span>
+                </label>
+              </div>
+              <div class="mm-config-char-preview" id="mm-config-char-preview">
+                <div class="mm-config-char-empty">点击刷新按钮加载角色描述</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div><!-- /mm-config-tab-context-content -->
+    </div>
+
+    <div class="mm-modal-footer">
+      <button id="mm-config-cancel" class="mm-btn mm-btn-secondary">
+        取消
+      </button>
+      <button id="mm-config-save" class="mm-btn mm-btn-primary">
+        保存配置
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- 流程配置弹窗 -->
+<div id="mm-flow-config-modal" class="mm-modal">
+  <div class="mm-modal-content mm-flow-config-modal-content">
+    <div class="mm-modal-header">
+      <h4><i class="fa-solid fa-list-ol"></i> 流程配置 - 来源排序</h4>
+      <button class="mm-modal-close mm-btn mm-btn-icon">
+        <i class="fa-solid fa-times"></i>
+      </button>
+    </div>
+    <div class="mm-modal-body mm-flow-config-body">
+      <p class="mm-hint" style="margin-bottom: 15px;">
+        拖拽调整各功能模块中来源的默认显示顺序。发送前检查界面将使用此配置作为默认顺序。
+      </p>
+      <div id="mm-flow-config-list" class="mm-flow-config-list">
+        <!-- 动态生成分组和来源列表 -->
+      </div>
+      <div id="mm-flow-config-empty" class="mm-empty-state" style="display: none;">
+        <i class="fa-solid fa-info-circle"></i>
+        <span>暂无配置数据</span>
+      </div>
+    </div>
+    <div class="mm-flow-config-resize-handle" id="mm-flow-config-resize"></div>
+    <div class="mm-modal-footer">
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button id="mm-flow-config-import" class="mm-btn mm-btn-secondary" title="从配置文件导入流程配置">
+          <i class="fa-solid fa-file-import"></i> 导入
+        </button>
+        <button id="mm-flow-config-export" class="mm-btn mm-btn-secondary" title="导出当前流程配置到文件">
+          <i class="fa-solid fa-file-export"></i> 导出
+        </button>
+        <button id="mm-flow-config-save" class="mm-btn mm-btn-primary" title="保存当前流程配置修改">
+          <i class="fa-solid fa-save"></i> 保存
+        </button>
+        <button id="mm-flow-config-reset" class="mm-btn mm-btn-secondary" title="恢复到内置的默认流程配置">
+          <i class="fa-solid fa-rotate-left"></i> 恢复默认
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

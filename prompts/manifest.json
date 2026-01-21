@@ -1,0 +1,9 @@
+{
+    "version": 1,
+    "description": "提示词文件清单 - 在此文件中列出所有提示词文件，系统会自动加载",
+    "files": {
+        "keywords": ["default_keywords.json"],
+        "historical": ["default_historical.json"],
+        "plot-optimize": ["default_plot_optimize.json"]
+    }
+}

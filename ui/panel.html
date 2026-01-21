@@ -1,0 +1,145 @@
+<!-- 记忆管理并发系统 - 管理面板 -->
+<div id="memory-manager-panel" class="mm-panel">
+  <div class="mm-panel-header">
+    <h3>记忆管理并发系统</h3>
+    <div class="mm-panel-actions">
+      <button
+        id="mm-plugin-toggle"
+        class="mm-toggle-btn"
+        title="启用插件"
+      >
+        <span class="mm-toggle-slider"></span>
+      </button>
+      <button
+        id="mm-import-book-btn"
+        class="mm-btn mm-btn-icon"
+        title="导入世界书"
+      >
+        <i class="fa-solid fa-file-import"></i>
+      </button>
+      <button id="mm-settings-btn" class="mm-btn mm-btn-icon" title="设置">
+        <i class="fa-solid fa-cog"></i>
+      </button>
+      <button
+        id="mm-panel-close-btn"
+        class="mm-btn mm-btn-icon"
+        title="关闭面板"
+      >
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+  </div>
+  <div class="mm-panel-content">
+    <div class="mm-section">
+      <div class="mm-section-header">
+        <span class="mm-section-title">已导入世界书</span>
+        <span id="mm-book-count" class="mm-badge">0</span>
+      </div>
+      <div id="mm-worldbook-list" class="mm-worldbook-list">
+        <div class="mm-empty-state">
+          <i class="fa-solid fa-file-import"></i>
+          <p>点击右上角导入世界书</p>
+        </div>
+      </div>
+    </div>
+    <div class="mm-section">
+      <div class="mm-section-header">
+        <span class="mm-section-title">更新状态</span>
+        <button
+          id="mm-clear-updates-btn"
+          class="mm-btn mm-btn-xs mm-hidden"
+          title="清空"
+        >
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </div>
+      <div id="mm-updates-list" class="mm-updates-list">
+        <div class="mm-empty-hint">暂无更新</div>
+      </div>
+    </div>
+    <div class="mm-section">
+      <div class="mm-section-header">
+        <span class="mm-section-title">运行状态</span>
+        <button
+          id="mm-stop-btn"
+          class="mm-btn mm-btn-danger mm-btn-xs mm-hidden"
+          title="终止处理"
+        >
+          <i class="fa-solid fa-stop"></i> 终止
+        </button>
+      </div>
+      <div id="mm-status-panel" class="mm-status-panel">
+        <div class="mm-status-header">
+          <div class="mm-status-item">
+            <span
+              id="mm-status-indicator"
+              class="mm-status-indicator mm-status-ready"
+            ></span>
+            <span id="mm-status-text" class="mm-status-text">就绪</span>
+          </div>
+          <div class="mm-status-summary mm-hidden" id="mm-status-summary">
+            <span id="mm-progress-count">0/0</span>
+          </div>
+        </div>
+        <div id="mm-progress-list" class="mm-progress-list mm-hidden"></div>
+        <div class="mm-status-info">
+          <div>最后处理: <span id="mm-last-process">-</span></div>
+          <div>处理耗时: <span id="mm-process-time">-</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="mm-author-section">
+      <div class="mm-author-info"><span class="mm-author-text">By：可乐、繁华 | v0.3.0</span> <button class="mm-paw-btn" id="mm-paw-btn" title="点我~">🐾</button></div>
+      <div class="mm-flower-container" id="mm-flower-container"></div>
+    </div>
+    <div class="mm-theme-switcher">
+      <div class="mm-theme-row">
+        <span class="mm-theme-label">纯色</span>
+        <div class="mm-theme-btns">
+          <button class="mm-theme-btn active" data-theme="default" title="深蓝（默认）"></button>
+          <button class="mm-theme-btn" data-theme="warm-brown" title="暖灰棕"></button>
+          <button class="mm-theme-btn" data-theme="lavender" title="淡紫薰衣草"></button>
+          <button class="mm-theme-btn" data-theme="forest" title="森林绿"></button>
+          <button class="mm-theme-btn" data-theme="rose" title="玫瑰灰"></button>
+          <button class="mm-theme-btn" data-theme="slate" title="静谧蓝灰"></button>
+        </div>
+      </div>
+      <div class="mm-theme-row">
+        <span class="mm-theme-label">星空</span>
+        <div class="mm-theme-btns">
+          <button class="mm-theme-btn mm-theme-starry" data-theme="starry-purple" title="星空紫"></button>
+          <button class="mm-theme-btn mm-theme-starry" data-theme="starry-blue" title="星空蓝"></button>
+          <button class="mm-theme-btn mm-theme-starry" data-theme="starry-black" title="星空黑"></button>
+        </div>
+      </div>
+    </div>
+    <div class="mm-section mm-game-section">
+      <div class="mm-section-header">
+        <span class="mm-section-title">游戏时间</span>
+      </div>
+      <div class="mm-chips-container mm-game-list">
+        <div class="mm-chip mm-game-chip" data-game="lifeRestart" title="人生重开模拟器">
+          <span class="mm-chip-name">人生重开</span>
+        </div>
+        <div class="mm-chip mm-game-chip" data-game="clumsyBird" title="笨鸟先飞 (Flappy Bird)">
+          <span class="mm-chip-name">笨鸟先飞</span>
+        </div>
+        <div class="mm-chip mm-game-chip" data-game="city3d" title="3D城市 (3D.City) - 仅支持PC端">
+          <span class="mm-chip-name">3D城市</span>
+        </div>
+        <div class="mm-chip mm-game-chip" data-game="tetris" title="俄罗斯方块 (Tetris)">
+          <span class="mm-chip-name">俄罗斯方块</span>
+        </div>
+        <div class="mm-chip mm-game-chip" data-game="mario" title="超级马里奥 (Super Mario Bros)">
+          <span class="mm-chip-name">超级马里奥</span>
+        </div>
+        <div class="mm-chip mm-game-chip" data-game="retrosnake" title="复古贪吃蛇 (Retro Snake)">
+          <span class="mm-chip-name">复古贪吃蛇</span>
+        </div>
+        <div class="mm-chip mm-game-chip" data-game="layaSnakes" title="贪吃蛇小作战">
+          <span class="mm-chip-name">贪吃蛇大作战</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

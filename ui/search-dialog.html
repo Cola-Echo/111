@@ -1,0 +1,62 @@
+<!-- 交互式记忆搜索对话面板 -->
+<div id="mm-search-dialog" class="mm-search-panel">
+  <div class="mm-search-panel-header" id="mm-search-header-toggle" style="cursor: pointer;">
+    <span class="mm-search-panel-title">
+      <i class="fa-solid fa-brain"></i>
+      记忆搜索助手
+    </span>
+    <div class="mm-search-panel-controls">
+      <button id="mm-search-minimize" class="mm-btn mm-btn-icon" title="最小化">
+        <i class="fa-solid fa-minus"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- 多总结世界书可折叠面板容器 -->
+  <div class="mm-search-books-container" id="mm-search-books-container">
+    <!-- 动态生成的世界书面板会插入这里 -->
+  </div>
+  <!-- 内容区域拖拽手柄 -->
+  <div class="mm-search-resize-handle" id="mm-search-resize-handle" title="拖拽调整内容区域高度">
+    <i class="fa-solid fa-grip-lines"></i>
+  </div>
+
+  <div class="mm-search-panel-status">
+    <div class="mm-search-status-left">
+      <span>已选: <strong id="mm-search-selected-count">0</strong> 条</span>
+      <span class="mm-search-divider">/</span>
+      <span>目标: <strong id="mm-search-target-count">5</strong> 条</span>
+    </div>
+    <div class="mm-search-status-right">
+      <span id="mm-search-other-tasks-status" class="mm-search-tasks-status">
+        <i class="fa-solid fa-spinner fa-spin"></i>
+        其他任务: <span id="mm-search-tasks-progress">0/0</span>
+      </span>
+    </div>
+  </div>
+
+  <div class="mm-search-panel-footer">
+    <div class="mm-search-actions">
+      <button id="mm-search-confirm" class="mm-btn mm-btn-secondary" disabled>
+        <i class="fa-solid fa-check"></i> 确认注入
+      </button>
+      <button id="mm-search-cancel" class="mm-btn mm-btn-danger">
+        <i class="fa-solid fa-times"></i> 取消
+      </button>
+      <button id="mm-search-continue" class="mm-btn mm-btn-secondary">
+        <i class="fa-solid fa-rotate"></i> 继续搜索
+      </button>
+      <button id="mm-search-custom" class="mm-btn mm-btn-secondary">
+        <i class="fa-solid fa-keyboard"></i> 自定义搜索
+      </button>
+    </div>
+
+    <!-- 自定义搜索输入框 - 默认隐藏 -->
+    <div id="mm-search-custom-input" class="mm-search-custom-input mm-hidden">
+      <input type="text" id="mm-search-keyword-input" placeholder="输入关键词..." />
+      <button id="mm-search-keyword-btn" class="mm-btn mm-btn-primary">
+        <i class="fa-solid fa-search"></i> 搜索
+      </button>
+    </div>
+  </div>
+</div>

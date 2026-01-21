@@ -1,0 +1,111 @@
+<!-- 剧情优化助手面板 -->
+<div id="mm-plot-optimize-panel" class="mm-plot-panel">
+  <div class="mm-plot-panel-header" id="mm-plot-header-toggle">
+    <span class="mm-plot-panel-title">
+      <i class="fa-solid fa-wand-magic-sparkles"></i>
+      剧情优化助手
+    </span>
+    <div class="mm-plot-panel-controls">
+      <button id="mm-plot-minimize" class="mm-btn mm-btn-icon" title="最小化">
+        <i class="fa-solid fa-minus"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- 聊天对话区域 -->
+  <div class="mm-plot-chat-container" id="mm-plot-chat-container">
+    <!-- 欢迎消息 -->
+    <div class="mm-plot-message mm-plot-message-ai mm-plot-message-welcome">
+      <div class="mm-plot-avatar">
+        <i class="fa-solid fa-wand-magic-sparkles"></i>
+      </div>
+      <div class="mm-plot-bubble">
+        <div class="mm-plot-bubble-content">
+          你好！我是剧情优化助手，可以帮你优化和调整角色扮演的剧情内容。
+          <br><br>
+          请先选择要参考的世界书，然后输入你的需求，我会为你生成优化建议。
+        </div>
+        <div class="mm-plot-bubble-time" id="mm-plot-welcome-time"></div>
+      </div>
+    </div>
+  </div>
+  <!-- 聊天区域拖拽手柄 -->
+  <div class="mm-plot-chat-resize-handle" id="mm-plot-chat-resize-handle" title="拖拽调整聊天区域高度">
+    <i class="fa-solid fa-grip-lines"></i>
+  </div>
+
+  <!-- 状态栏 -->
+  <div class="mm-plot-panel-status">
+    <div class="mm-plot-status-left">
+      <span id="mm-plot-status-text">等待生成...</span>
+    </div>
+    <div class="mm-plot-status-right">
+      <span>世界书: <strong id="mm-plot-books-count">0</strong></span>
+    </div>
+  </div>
+
+  <!-- 操作区（输入框和按钮，位于世界书上方） -->
+  <div class="mm-plot-panel-footer">
+    <!-- 用户输入框 -->
+    <div class="mm-plot-input-area">
+      <input type="text" id="mm-plot-user-input" class="mm-plot-input" placeholder="输入调整需求..." />
+      <button id="mm-plot-send-btn" class="mm-btn mm-btn-primary mm-btn-sm" title="发送">
+        <i class="fa-solid fa-paper-plane"></i>
+      </button>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="mm-plot-actions">
+      <button id="mm-plot-accept-btn" class="mm-btn mm-btn-success" disabled>
+        <i class="fa-solid fa-check"></i> 接受
+      </button>
+      <button id="mm-plot-reject-btn" class="mm-btn mm-btn-secondary" disabled>
+        <i class="fa-solid fa-times"></i> 拒绝
+      </button>
+      <button id="mm-plot-regenerate-btn" class="mm-btn mm-btn-secondary" disabled>
+        <i class="fa-solid fa-rotate"></i> 重新生成
+      </button>
+    </div>
+  </div>
+
+  <!-- 世界书选择区域（可折叠，位于底部） -->
+  <div class="mm-plot-worldbook-section" id="mm-plot-worldbook-section">
+    <div class="mm-plot-worldbook-header" id="mm-plot-worldbook-toggle">
+      <span class="mm-plot-worldbook-title">
+        <i class="fa-solid fa-book"></i>
+        世界书选择
+      </span>
+      <span class="mm-plot-worldbook-badge" id="mm-plot-worldbook-badge">已选 0</span>
+      <button type="button" id="mm-plot-worldbook-refresh" class="mm-btn mm-btn-xs mm-btn-secondary" title="刷新">
+        <i class="fa-solid fa-rotate-right"></i>
+      </button>
+      <i class="fa-solid fa-chevron-down mm-plot-worldbook-arrow"></i>
+    </div>
+    <div class="mm-plot-worldbook-body" id="mm-plot-worldbook-body">
+      <!-- 搜索框 -->
+      <div class="mm-plot-worldbook-search">
+        <i class="fa-solid fa-search"></i>
+        <input type="text" id="mm-plot-worldbook-search-input" placeholder="搜索世界书或条目..." />
+        <button type="button" id="mm-plot-worldbook-search-clear" class="mm-btn-icon-small" title="清除" style="display: none;">
+          <i class="fa-solid fa-times"></i>
+        </button>
+      </div>
+      <div id="mm-plot-worldbook-loading" class="mm-plot-loading" style="display: none;">
+        <i class="fa-solid fa-spinner fa-spin"></i><span>加载中...</span>
+      </div>
+      <div id="mm-plot-worldbook-empty" class="mm-plot-empty" style="display: none;">
+        <i class="fa-solid fa-book-open"></i><span>未找到世界书</span>
+      </div>
+      <div id="mm-plot-worldbook-no-results" class="mm-plot-empty" style="display: none;">
+        <i class="fa-solid fa-search"></i><span>无匹配结果</span>
+      </div>
+      <div class="mm-plot-worldbook-list" id="mm-plot-worldbook-list">
+        <!-- 动态生成世界书列表 -->
+      </div>
+    </div>
+    <!-- 世界书区域底部拖拽手柄 -->
+    <div class="mm-plot-worldbook-resize-handle" id="mm-plot-worldbook-resize-handle" title="拖拽调整高度">
+      <i class="fa-solid fa-grip-lines"></i>
+    </div>
+  </div>
+</div>

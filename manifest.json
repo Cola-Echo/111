@@ -1,0 +1,13 @@
+{
+    "display_name": "记忆管理并发系统",
+    "loading_order": 100,
+    "requires": [],
+    "optional": [],
+    "js": "index.js",
+    "css": "style.css",
+    "author": "可乐、繁华",
+    "version": "0.3.0",
+    "homePage": "",
+    "auto_update": false,
+    "generate_interceptor": "MemoryManagerConcurrent_intercept"
+}

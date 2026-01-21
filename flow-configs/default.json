@@ -1,0 +1,56 @@
+{
+    "version": 1,
+    "name": "默认流程配置",
+    "description": "系统默认的流程配置，定义了各个功能的来源顺序",
+    "configs": {
+        "记忆世界书": {
+            "description": "记忆世界书功能的来源顺序配置",
+            "sources": [
+                "jailbreak",
+                "main",
+                "worldbook",
+                "context",
+                "auxiliary",
+                "user"
+            ]
+        },
+        "总结世界书": {
+            "description": "总结世界书功能的来源顺序配置",
+            "sources": [
+                "jailbreak",
+                "main",
+                "worldbook",
+                "context",
+                "auxiliary",
+                "user"
+            ]
+        },
+        "索引合并": {
+            "description": "索引合并功能的来源顺序配置",
+            "sources": [
+                "jailbreak",
+                "main",
+                "worldbook",
+                "context",
+                "auxiliary",
+                "user"
+            ]
+        },
+        "剧情优化": {
+            "description": "剧情优化功能的来源顺序配置",
+            "sources": [
+                "jailbreak",
+                "main",
+                "plot_worldbooks",
+                "plot_char_desc",
+                "plot_context",
+                "plot_historical",
+                "plot_user_msg",
+                "auxiliary",
+                "plot_history",
+                "plot_panel_worldbooks",
+                "plot_input"
+            ]
+        }
+    }
+}
