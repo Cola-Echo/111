@@ -2,9 +2,14 @@
 <div id="memory-manager-settings" class="mm-settings">
   <div class="mm-settings-header">
     <h3>设置</h3>
-    <button id="mm-settings-close" class="mm-btn mm-btn-icon">
-      <i class="fa-solid fa-times"></i>
-    </button>
+    <div class="mm-settings-header-actions">
+      <button id="mm-clear-old-data" class="mm-btn mm-btn-secondary mm-btn-xs" title="清除旧数据（1分钟前就算旧数据）">
+        <i class="fa-solid fa-broom"></i> 清除旧数据
+      </button>
+      <button id="mm-settings-close" class="mm-btn mm-btn-icon" title="关闭">
+        <i class="fa-solid fa-times"></i>
+      </button>
+    </div>
   </div>
 
   <div class="mm-settings-content">
@@ -402,6 +407,69 @@
               <i class="fa-solid fa-list-ol"></i> 流程配置
             </button>
           </div>
+        </div>
+      </div>
+
+      <!-- 多AI生成（可折叠） -->
+      <div class="mm-collapse-card" id="mm-multi-ai-card">
+        <div class="mm-collapse-header" id="mm-multi-ai-toggle">
+          <div class="mm-collapse-title">
+            <i class="fa-solid fa-robot"></i>
+            <span>多AI生成</span>
+            <span class="mm-collapse-badge" id="mm-multi-ai-badge">关闭</span>
+          </div>
+          <i class="fa-solid fa-chevron-down mm-collapse-arrow"></i>
+        </div>
+        <div class="mm-collapse-body">
+          <!-- 启用开关 -->
+          <div class="mm-setting-item">
+            <label>
+              <input type="checkbox" id="mm-enable-multi-ai" />
+              启用多AI生成功能
+            </label>
+            <small class="mm-hint">启用后在汇总检查弹窗中显示「多AI生成」按钮</small>
+          </div>
+
+          <!-- 已配置的API列表 -->
+          <div class="mm-multi-ai-provider-section">
+            <div class="mm-multi-ai-section-header">
+              <span class="mm-multi-ai-section-title">已配置的API列表</span>
+            </div>
+            <div class="mm-multi-ai-provider-list" id="mm-multi-ai-provider-list">
+              <!-- 动态生成provider列表项 -->
+            </div>
+            <div class="mm-multi-ai-provider-empty" id="mm-multi-ai-provider-empty">
+              <i class="fa-solid fa-plug"></i>
+              <span>暂无API配置</span>
+            </div>
+            <div class="mm-multi-ai-actions">
+              <button type="button" id="mm-multi-ai-add" class="mm-btn mm-btn-secondary">
+                <i class="fa-solid fa-plus"></i> 添加API配置
+              </button>
+              <button type="button" id="mm-multi-ai-add-preset" class="mm-btn mm-btn-secondary">
+                <i class="fa-solid fa-file-lines"></i> 添加提示词预设
+              </button>
+            </div>
+          </div>
+
+          <!-- 已保存的提示词预设 -->
+          <div class="mm-multi-ai-provider-section mm-prompt-preset-section">
+            <div class="mm-multi-ai-section-header">
+              <span class="mm-multi-ai-section-title">已保存的提示词预设</span>
+            </div>
+            <div class="mm-prompt-preset-list" id="mm-prompt-preset-list">
+              <!-- 动态生成预设列表项 -->
+            </div>
+            <div class="mm-prompt-preset-empty" id="mm-prompt-preset-empty">
+              <i class="fa-solid fa-file-lines"></i>
+              <span>暂无提示词预设</span>
+            </div>
+          </div>
+
+          <small class="mm-hint mm-multi-ai-hint">
+            <i class="fa-solid fa-info-circle"></i>
+            至少需要配置2个已启用的API才能使用多AI生成功能
+          </small>
         </div>
       </div>
     </div>
@@ -804,16 +872,31 @@
             <i class="fa-solid fa-chevron-down mm-collapse-arrow"></i>
           </div>
           <div class="mm-collapse-body">
-            <div class="mm-config-worldbook-content">
+            <div class="mm-config-worldbook-content" id="mm-config-worldbook-content">
+              <!-- 搜索框 -->
+              <div class="mm-config-worldbook-search">
+                <i class="fa-solid fa-search"></i>
+                <input type="text" id="mm-config-worldbook-search-input" placeholder="搜索世界书或条目..." />
+                <button type="button" id="mm-config-worldbook-search-clear" class="mm-btn-icon-small" title="清除" style="display: none;">
+                  <i class="fa-solid fa-times"></i>
+                </button>
+              </div>
               <div id="mm-config-worldbook-loading" class="mm-loading-state" style="display: none;">
                 <i class="fa-solid fa-spinner fa-spin"></i><span>加载中...</span>
               </div>
               <div id="mm-config-worldbook-empty" class="mm-empty-state" style="display: none;">
                 <i class="fa-solid fa-book-open"></i><span>未找到世界书</span>
               </div>
+              <div id="mm-config-worldbook-no-results" class="mm-empty-state" style="display: none;">
+                <i class="fa-solid fa-search"></i><span>无匹配结果</span>
+              </div>
               <div class="mm-config-worldbook-list" id="mm-config-worldbook-list">
                 <!-- 动态生成世界书列表 -->
               </div>
+            </div>
+            <!-- 拖拽调整高度手柄 -->
+            <div class="mm-config-worldbook-resize-handle" id="mm-config-worldbook-resize-handle" title="拖拽调整高度">
+              <i class="fa-solid fa-grip-lines"></i>
             </div>
           </div>
         </div>
@@ -905,3 +988,135 @@
     </div>
   </div>
 </div>
+
+<!-- 多AI配置弹窗 -->
+<div id="mm-multi-ai-config-modal" class="mm-modal">
+  <div class="mm-modal-content">
+    <div class="mm-modal-header">
+      <h4 id="mm-multi-ai-config-title">配置AI: 新建配置</h4>
+      <button class="mm-modal-close mm-btn mm-btn-icon">
+        <i class="fa-solid fa-times"></i>
+      </button>
+    </div>
+
+    <div class="mm-modal-body">
+      <!-- 配置名称 -->
+      <div class="mm-form-group">
+        <label>配置名称 <span class="mm-required">*</span></label>
+        <input type="text" id="mm-multi-ai-name" placeholder="例如: GPT-4" />
+        <small class="mm-hint">用于在选择弹窗中显示</small>
+      </div>
+
+      <!-- API 格式 -->
+      <div class="mm-form-group">
+        <label>API 格式</label>
+        <div class="mm-radio-group">
+          <label><input type="radio" name="mm-multi-ai-format" value="openai" checked /> OpenAI 兼容</label>
+          <label><input type="radio" name="mm-multi-ai-format" value="anthropic" /> Anthropic</label>
+          <label><input type="radio" name="mm-multi-ai-format" value="google" /> Google</label>
+          <label><input type="radio" name="mm-multi-ai-format" value="custom" /> 自定义</label>
+        </div>
+      </div>
+
+      <!-- API URL -->
+      <div class="mm-form-group">
+        <label>API URL <span class="mm-required">*</span></label>
+        <input type="text" id="mm-multi-ai-url" placeholder="https://api.openai.com/v1" />
+        <small class="mm-hint">填写到 /v1 即可，会自动补全完整路径</small>
+      </div>
+
+      <!-- API Key -->
+      <div class="mm-form-group">
+        <label>API Key</label>
+        <input type="password" id="mm-multi-ai-key" placeholder="sk-..." />
+        <small class="mm-hint">本地模型可留空</small>
+      </div>
+
+      <!-- 模型名称 -->
+      <div class="mm-form-group">
+        <label>模型名称 <span class="mm-required">*</span></label>
+        <div class="mm-model-input-row">
+          <select id="mm-multi-ai-model" class="mm-model-select">
+            <option value="" disabled selected>--- 请获取模型 ---</option>
+          </select>
+          <button type="button" id="mm-multi-ai-fetch-models" class="mm-btn mm-btn-secondary" title="从API获取模型列表">
+            <i class="fa-solid fa-download"></i> 获取模型
+          </button>
+        </div>
+      </div>
+
+      <!-- Max Tokens 和 Temperature -->
+      <div class="mm-form-row">
+        <div class="mm-form-group">
+          <label>Max Tokens</label>
+          <input type="number" id="mm-multi-ai-max-tokens" value="4000" min="100" max="32000" />
+        </div>
+        <div class="mm-form-group">
+          <label>Temperature</label>
+          <input type="range" id="mm-multi-ai-temperature" value="0.7" min="0" max="1" step="0.1" />
+          <span id="mm-multi-ai-temperature-value">0.7</span>
+        </div>
+      </div>
+
+      <!-- 输出模式 -->
+      <div class="mm-form-group">
+        <label>输出模式</label>
+        <div class="mm-radio-group">
+          <label><input type="radio" name="mm-multi-ai-streaming" value="true" checked /> 流式输出（实时显示）</label>
+          <label><input type="radio" name="mm-multi-ai-streaming" value="false" /> 非流式（等待完成）</label>
+        </div>
+      </div>
+
+      <!-- 自定义格式专用 -->
+      <div id="mm-multi-ai-custom-options" class="mm-hidden">
+        <div class="mm-form-group">
+          <label>自定义请求模板 (JSON)</label>
+          <textarea id="mm-multi-ai-custom-template" rows="4" placeholder='{"model": "{{model}}", "prompt": "{{system}}\n\n{{user}}"}'></textarea>
+          <small class="mm-hint">可用变量: {{system}}, {{user}}, {{model}}, {{max_tokens}}, {{temperature}}</small>
+        </div>
+        <div class="mm-form-group">
+          <label>响应解析路径</label>
+          <input type="text" id="mm-multi-ai-response-path" placeholder="choices.0.message.content" />
+        </div>
+      </div>
+
+      <!-- 提示词预设选择 -->
+      <div class="mm-form-group mm-preset-select-group">
+        <label class="mm-preset-checkbox-label">
+          <input type="checkbox" id="mm-multi-ai-use-preset" />
+          <span>使用提示词预设</span>
+        </label>
+        <small class="mm-hint">启用后将使用预设构建消息（包含系统提示词、聊天历史等）</small>
+
+        <div id="mm-multi-ai-preset-options" class="mm-preset-options mm-hidden">
+          <div class="mm-preset-select-row">
+            <select id="mm-multi-ai-preset-select">
+              <option value="">-- 请选择预设 --</option>
+            </select>
+            <button type="button" id="mm-multi-ai-edit-preset" class="mm-btn mm-btn-icon" title="编辑预设">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+            <button type="button" id="mm-multi-ai-new-preset" class="mm-btn mm-btn-icon" title="新建预设">
+              <i class="fa-solid fa-plus"></i>
+            </button>
+          </div>
+          <div id="mm-multi-ai-preset-preview" class="mm-preset-preview"></div>
+        </div>
+      </div>
+
+      <!-- 测试连接 -->
+      <div class="mm-form-group">
+        <button id="mm-multi-ai-test" class="mm-btn mm-btn-secondary">
+          <i class="fa-solid fa-link"></i> 测试连接
+        </button>
+        <span id="mm-multi-ai-test-result" class="mm-test-result"></span>
+      </div>
+    </div>
+
+    <div class="mm-modal-footer">
+      <button id="mm-multi-ai-cancel" class="mm-btn mm-btn-secondary">取消</button>
+      <button id="mm-multi-ai-save" class="mm-btn mm-btn-primary">保存配置</button>
+    </div>
+  </div>
+</div>
+

@@ -1,13 +1,15 @@
 {
     "display_name": "记忆管理并发系统",
-    "loading_order": 100,
-    "requires": [],
-    "optional": [],
+    "description": "智能记忆检索与注入系统，支持并发处理、世界书管理和剧情优化",
+    "version": "0.4.6",
+    "author": "可乐、繁华",
+    "homePage": "https://github.com/Cola-Echo/memory-manager-concurrent",
     "js": "index.js",
     "css": "style.css",
-    "author": "可乐、繁华",
-    "version": "0.3.0",
-    "homePage": "",
+    "loading_order": 100,
     "auto_update": false,
+    "requires": [],
+    "optional": [],
+    "minimum_client_version": "1.12.0",
     "generate_interceptor": "MemoryManagerConcurrent_intercept"
 }
