@@ -3819,9 +3819,167 @@
   font-size: 12px;
 }
 
+/* 世界书统计列表 */
+.mm-wb-stats-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mm-wb-stats-count {
+  font-size: 12px;
+  color: var(--mm-text-muted);
+  font-weight: normal;
+}
+
+/* 世界书统计卡片 */
+.mm-wb-stats-card {
+  background: var(--mm-bg-card);
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--mm-border);
+}
+
+.mm-wb-stats-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.15s ease;
+}
+
+.mm-wb-stats-card-header:hover {
+  background: var(--mm-bg-hover);
+}
+
+.mm-wb-stats-card .mm-wb-stats-expand {
+  font-size: 10px;
+  color: var(--mm-text-muted);
+  transition: transform 0.2s ease;
+  width: 12px;
+  text-align: center;
+}
+
+.mm-wb-stats-card.expanded .mm-wb-stats-expand {
+  transform: rotate(90deg);
+}
+
+.mm-wb-stats-card-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--mm-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mm-wb-stats-card-summary {
+  font-size: 11px;
+  color: var(--mm-text-muted);
+  white-space: nowrap;
+}
+
+.mm-wb-stats-card-summary.mm-stat-error {
+  color: var(--mm-danger);
+}
+
+.mm-wb-stats-card-body {
+  display: none;
+  padding: 8px 12px;
+  background: var(--mm-bg-secondary);
+  border-top: 1px solid var(--mm-border);
+}
+
+.mm-wb-stats-card.expanded .mm-wb-stats-card-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mm-wb-stats-card .mm-wb-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 10px;
+  background: var(--mm-bg-card);
+  border-radius: 4px;
+  min-width: 60px;
+  flex: 1;
+}
+
+.mm-wb-stats-card .mm-wb-stat-label {
+  font-size: 10px;
+}
+
+.mm-wb-stats-card .mm-wb-stat-value {
+  font-size: 14px;
+}
+
 /* ============================================================================
    标签过滤样式
    ============================================================================ */
+
+/* 标签过滤标签页 - 角色切换 */
+.mm-tag-filter-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  background: var(--mm-bg-secondary);
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.mm-tag-filter-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--mm-text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mm-tag-filter-tab:hover {
+  color: var(--mm-text);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.mm-tag-filter-tab.active {
+  background: var(--mm-primary);
+  color: white;
+  font-weight: 500;
+}
+
+.mm-tag-filter-tab i {
+  font-size: 12px;
+}
+
+/* 标签过滤面板 */
+.mm-tag-filter-panel {
+  display: none;
+}
+
+.mm-tag-filter-panel.active {
+  display: block;
+}
+
+/* 标签区块 */
+.mm-tag-section {
+  margin-bottom: 12px;
+}
+
+.mm-tag-section-header {
+  margin-bottom: 8px;
+}
 
 /* 标签模式标题 - 居中显示 */
 .mm-tag-mode-checkbox {

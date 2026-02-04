@@ -157,58 +157,130 @@
           <i class="fa-solid fa-chevron-down mm-collapse-arrow"></i>
         </div>
         <div class="mm-collapse-body">
-          <!-- 提取模式区域 -->
-          <div class="mm-tag-section">
-            <div class="mm-tag-section-header">
-              <label class="mm-tag-mode-checkbox">
-                <input type="checkbox" id="mm-enable-extract" />
-                <span class="mm-tag-mode-label">提取模式</span>
-              </label>
-            </div>
-            <div class="mm-tag-container mm-extract-container" id="mm-extract-container">
-              <div class="mm-tag-list" id="mm-extract-tag-list">
-                <!-- 动态生成 tag chips -->
-              </div>
-              <div class="mm-tag-input-row">
-                <input
-                  type="text"
-                  class="mm-tag-input"
-                  id="mm-extract-tag-input"
-                  placeholder="输入标签名，多个用逗号分隔..."
-                />
-                <button class="mm-btn mm-btn-small mm-btn-primary" id="mm-extract-tag-save">
-                  <i class="fa-solid fa-plus"></i>
-                </button>
-              </div>
-            </div>
-            <small class="mm-hint">只保留指定标签 &lt;tag&gt;...&lt;/tag&gt; 内的内容</small>
+          <!-- 角色切换标签页 -->
+          <div class="mm-tag-filter-tabs">
+            <button class="mm-tag-filter-tab active" data-tab="ai">
+              <i class="fa-solid fa-robot"></i>
+              <span>AI消息</span>
+            </button>
+            <button class="mm-tag-filter-tab" data-tab="user">
+              <i class="fa-solid fa-user"></i>
+              <span>用户消息</span>
+            </button>
           </div>
 
-          <!-- 排除模式区域 -->
-          <div class="mm-tag-section">
-            <div class="mm-tag-section-header">
-              <label class="mm-tag-mode-checkbox">
-                <input type="checkbox" id="mm-enable-exclude" />
-                <span class="mm-tag-mode-label">排除模式</span>
-              </label>
-            </div>
-            <div class="mm-tag-container mm-exclude-container" id="mm-exclude-container">
-              <div class="mm-tag-list" id="mm-exclude-tag-list">
-                <!-- 动态生成 tag chips -->
+          <!-- AI消息过滤配置 -->
+          <div class="mm-tag-filter-panel active" id="mm-tag-filter-ai">
+            <!-- 提取模式区域 -->
+            <div class="mm-tag-section">
+              <div class="mm-tag-section-header">
+                <label class="mm-tag-mode-checkbox">
+                  <input type="checkbox" id="mm-ai-enable-extract" />
+                  <span class="mm-tag-mode-label">提取模式</span>
+                </label>
               </div>
-              <div class="mm-tag-input-row">
-                <input
-                  type="text"
-                  class="mm-tag-input"
-                  id="mm-exclude-tag-input"
-                  placeholder="输入标签名，多个用逗号分隔..."
-                />
-                <button class="mm-btn mm-btn-small mm-btn-primary" id="mm-exclude-tag-save">
-                  <i class="fa-solid fa-plus"></i>
-                </button>
+              <div class="mm-tag-container mm-extract-container" id="mm-ai-extract-container">
+                <div class="mm-tag-list" id="mm-ai-extract-tag-list">
+                  <!-- 动态生成 tag chips -->
+                </div>
+                <div class="mm-tag-input-row">
+                  <input
+                    type="text"
+                    class="mm-tag-input"
+                    id="mm-ai-extract-tag-input"
+                    placeholder="输入标签名，多个用逗号分隔..."
+                  />
+                  <button class="mm-btn mm-btn-small mm-btn-primary" id="mm-ai-extract-tag-save">
+                    <i class="fa-solid fa-plus"></i>
+                  </button>
+                </div>
               </div>
+              <small class="mm-hint">只保留指定标签 &lt;tag&gt;...&lt;/tag&gt; 内的内容</small>
             </div>
-            <small class="mm-hint">移除指定标签 &lt;tag&gt;...&lt;/tag&gt; 及其内容</small>
+
+            <!-- 排除模式区域 -->
+            <div class="mm-tag-section">
+              <div class="mm-tag-section-header">
+                <label class="mm-tag-mode-checkbox">
+                  <input type="checkbox" id="mm-ai-enable-exclude" />
+                  <span class="mm-tag-mode-label">排除模式</span>
+                </label>
+              </div>
+              <div class="mm-tag-container mm-exclude-container" id="mm-ai-exclude-container">
+                <div class="mm-tag-list" id="mm-ai-exclude-tag-list">
+                  <!-- 动态生成 tag chips -->
+                </div>
+                <div class="mm-tag-input-row">
+                  <input
+                    type="text"
+                    class="mm-tag-input"
+                    id="mm-ai-exclude-tag-input"
+                    placeholder="输入标签名，多个用逗号分隔..."
+                  />
+                  <button class="mm-btn mm-btn-small mm-btn-primary" id="mm-ai-exclude-tag-save">
+                    <i class="fa-solid fa-plus"></i>
+                  </button>
+                </div>
+              </div>
+              <small class="mm-hint">移除指定标签 &lt;tag&gt;...&lt;/tag&gt; 及其内容</small>
+            </div>
+          </div>
+
+          <!-- 用户消息过滤配置 -->
+          <div class="mm-tag-filter-panel" id="mm-tag-filter-user">
+            <!-- 提取模式区域 -->
+            <div class="mm-tag-section">
+              <div class="mm-tag-section-header">
+                <label class="mm-tag-mode-checkbox">
+                  <input type="checkbox" id="mm-user-enable-extract" />
+                  <span class="mm-tag-mode-label">提取模式</span>
+                </label>
+              </div>
+              <div class="mm-tag-container mm-extract-container" id="mm-user-extract-container">
+                <div class="mm-tag-list" id="mm-user-extract-tag-list">
+                  <!-- 动态生成 tag chips -->
+                </div>
+                <div class="mm-tag-input-row">
+                  <input
+                    type="text"
+                    class="mm-tag-input"
+                    id="mm-user-extract-tag-input"
+                    placeholder="输入标签名，多个用逗号分隔..."
+                  />
+                  <button class="mm-btn mm-btn-small mm-btn-primary" id="mm-user-extract-tag-save">
+                    <i class="fa-solid fa-plus"></i>
+                  </button>
+                </div>
+              </div>
+              <small class="mm-hint">只保留指定标签 &lt;tag&gt;...&lt;/tag&gt; 内的内容</small>
+            </div>
+
+            <!-- 排除模式区域 -->
+            <div class="mm-tag-section">
+              <div class="mm-tag-section-header">
+                <label class="mm-tag-mode-checkbox">
+                  <input type="checkbox" id="mm-user-enable-exclude" />
+                  <span class="mm-tag-mode-label">排除模式</span>
+                </label>
+              </div>
+              <div class="mm-tag-container mm-exclude-container" id="mm-user-exclude-container">
+                <div class="mm-tag-list" id="mm-user-exclude-tag-list">
+                  <!-- 动态生成 tag chips -->
+                </div>
+                <div class="mm-tag-input-row">
+                  <input
+                    type="text"
+                    class="mm-tag-input"
+                    id="mm-user-exclude-tag-input"
+                    placeholder="输入标签名，多个用逗号分隔..."
+                  />
+                  <button class="mm-btn mm-btn-small mm-btn-primary" id="mm-user-exclude-tag-save">
+                    <i class="fa-solid fa-plus"></i>
+                  </button>
+                </div>
+              </div>
+              <small class="mm-hint">移除指定标签 &lt;tag&gt;...&lt;/tag&gt; 及其内容</small>
+            </div>
           </div>
 
           <label class="mm-tag-case-option">
@@ -217,7 +289,7 @@
           </label>
 
           <small class="mm-hint mm-tag-hint">
-            <strong>提示：</strong>两种模式可同时启用，先提取后排除
+            <strong>提示：</strong>两种模式可同时启用，先提取后排除。AI消息和用户消息分别配置。
           </small>
         </div>
       </div>
@@ -275,40 +347,24 @@
               </small>
             </div>
 
-            <!-- 条目统计区域 -->
+            <!-- 条目统计区域（支持多选折叠显示） -->
             <div class="mm-wb-section mm-wb-entries-section" id="mm-wb-entries-section" style="display: none;">
               <div class="mm-wb-section-header">
                 <span class="mm-wb-section-title">
-                  <span id="mm-wb-selected-name">-</span> 的条目统计
+                  条目统计 <span class="mm-wb-stats-count" id="mm-wb-stats-count"></span>
                 </span>
               </div>
-              <div class="mm-wb-stats-container" id="mm-wb-stats-container">
-                <div class="mm-wb-stats-loading" id="mm-wb-stats-loading" style="display: none;">
-                  <i class="fa-solid fa-spinner fa-spin"></i>
-                  <span>统计中...</span>
-                </div>
-                <div class="mm-wb-stats-content" id="mm-wb-stats-content">
-                  <div class="mm-wb-stat-item">
-                    <span class="mm-wb-stat-label">总条目数</span>
-                    <span class="mm-wb-stat-value" id="mm-wb-total-count">0</span>
-                  </div>
-                  <div class="mm-wb-stat-item">
-                    <span class="mm-wb-stat-label">启用条目</span>
-                    <span class="mm-wb-stat-value mm-stat-enabled" id="mm-wb-enabled-count">0</span>
-                  </div>
-                  <div class="mm-wb-stat-item">
-                    <span class="mm-wb-stat-label">禁用条目</span>
-                    <span class="mm-wb-stat-value mm-stat-disabled" id="mm-wb-disabled-count">0</span>
-                  </div>
-                  <div class="mm-wb-stat-item">
-                    <span class="mm-wb-stat-label">常驻条目</span>
-                    <span class="mm-wb-stat-value mm-stat-constant" id="mm-wb-constant-count">0</span>
-                  </div>
-                </div>
-                <div class="mm-wb-stats-empty" id="mm-wb-stats-empty" style="display: none;">
-                  <i class="fa-solid fa-file-circle-question"></i>
-                  <span>该世界书暂无条目</span>
-                </div>
+              <!-- 统计列表容器 -->
+              <div class="mm-wb-stats-list" id="mm-wb-stats-list">
+                <!-- 动态生成的世界书统计卡片 -->
+              </div>
+              <div class="mm-wb-stats-loading" id="mm-wb-stats-loading" style="display: none;">
+                <i class="fa-solid fa-spinner fa-spin"></i>
+                <span>统计中...</span>
+              </div>
+              <div class="mm-wb-stats-empty" id="mm-wb-stats-empty" style="display: none;">
+                <i class="fa-solid fa-file-circle-question"></i>
+                <span>请先选择世界书</span>
               </div>
             </div>
 
