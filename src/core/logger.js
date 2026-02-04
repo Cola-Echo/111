@@ -90,11 +90,12 @@ const Logger = {
 
     /**
      * 调试日志（受 showLogs 控制）
+     * 注意：使用 console.log 而非 console.debug，确保在所有浏览器设置下可见
      * @param {...any} args 日志参数
      */
     debug: (...args) => {
         if (Logger.shouldShowLogs()) {
-            console.debug(Logger.prefix, ...args);
+            console.log(Logger.prefix, "[DEBUG]", ...args);
         }
     },
 
@@ -195,7 +196,7 @@ const Logger = {
 
             debug: (...args) => {
                 if (Logger.shouldShowLogs()) {
-                    console.debug(modulePrefix, ...args);
+                    console.log(modulePrefix, "[DEBUG]", ...args);
                 }
             },
 

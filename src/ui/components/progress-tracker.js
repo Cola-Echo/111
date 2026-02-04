@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * 进度追踪器模块
  * @module ui/components/progress-tracker
@@ -6,11 +7,12 @@
 import Logger from "@core/logger";
 
 // 消息进度面板引用（将在初始化时注入）
+/** @type {any} */
 let messageProgressPanel = null;
 
 /**
  * 设置消息进度面板引用
- * @param {object} panel 消息进度面板实例
+ * @param {any} panel 消息进度面板实例
  */
 export function setMessageProgressPanel(panel) {
     messageProgressPanel = panel;
@@ -182,6 +184,15 @@ export class ProgressTracker {
             type,
         );
         Logger.log("[ProgressTracker] addTask 被调用:", taskId, name, type);
+
+        // 先确保 messageProgressPanel 容器已创建（在添加任务数据之前）
+        if (messageProgressPanel && !messageProgressPanel.container) {
+            Logger.log("[ProgressTracker] 预先初始化 messageProgressPanel 容器");
+            messageProgressPanel.createDOM();
+            messageProgressPanel.bindEvents();
+            messageProgressPanel.loadPosition();
+        }
+
         if (this.tasks.has(taskId)) {
             const task = this.tasks.get(taskId);
             task.status = "running";
@@ -213,15 +224,6 @@ export class ProgressTracker {
             !!messageProgressPanel,
         );
         if (messageProgressPanel) {
-            // 确保 messageProgressPanel 已初始化（首次调用时需要创建 DOM）
-            Logger.log(
-                "[ProgressTracker] messageProgressPanel.container 状态:",
-                !!messageProgressPanel.container,
-            );
-            if (!messageProgressPanel.container) {
-                Logger.log("[ProgressTracker] 初始化 messageProgressPanel");
-                messageProgressPanel.init();
-            }
             const activeTasks = new Map();
             for (const [id, task] of this.tasks) {
                 if (task.status !== "success" && task.status !== "error") {

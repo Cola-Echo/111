@@ -34,6 +34,23 @@
         >
       </div>
 
+      <!-- 剧情末尾字数设置（当启用剧情末尾时显示） -->
+      <div class="mm-setting-item" id="mm-recent-plot-length-container" style="display: none;">
+        <label>剧情末尾字数</label>
+        <div class="mm-slider-row">
+          <input
+            type="range"
+            id="mm-recent-plot-length"
+            value="200"
+            min="10"
+            max="300"
+            step="10"
+          />
+          <span id="mm-recent-plot-length-value">200</span>
+        </div>
+        <small class="mm-hint">截取最后一条AI消息末尾的字数（10-300）</small>
+      </div>
+
       <!-- 功能开关折叠卡片 -->
       <div class="mm-collapse-card" id="mm-feature-switch-card">
         <div class="mm-collapse-header" id="mm-feature-switch-toggle">

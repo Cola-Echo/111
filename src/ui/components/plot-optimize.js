@@ -1725,12 +1725,11 @@ async function generatePlotOptimize(userInput = "") {
         Logger.log("[剧情优化] 调用 progressTracker.addTask");
         try {
             // 确保任务被正确添加，并且进度UI被显示
+            // addTask 已经设置了 status: "running"，不需要再调用 startTask
             progressTracker.addTask("plot_optimize", "剧情优化", "plot");
             Logger.log("[剧情优化] addTask 调用成功");
-            // 立即更新进度为1%，确保进度条显示
-            progressTracker.updateStreamProgress("plot_optimize", 1);
-            // 立即开始任务，确保状态正确
-            progressTracker.startTask("plot_optimize");
+            // 立即更新进度为5%，确保进度条有初始显示
+            progressTracker.updateStreamProgress("plot_optimize", 5);
         } catch (e) {
             Logger.error("[剧情优化] addTask 调用失败:", e);
         }

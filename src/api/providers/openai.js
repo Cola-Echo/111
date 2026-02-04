@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * OpenAI API 提供商
  * @module api/providers/openai
@@ -5,7 +6,7 @@
 
 /**
  * 模拟流式进度管理器
- * 使用时间驱动的平滑进度增长，提供稳定的视觉体验
+ * 使用检查点驱动的进度增长，模拟真实的流式传输体验
  */
 class SimulatedProgressManager {
     constructor(taskId, progressTracker, config = {}) {
@@ -15,17 +16,34 @@ class SimulatedProgressManager {
         this.currentProgress = 0;
         this.intervalId = null;
         this.isCompleted = false;
+        this.completionIntervalId = null;
+
+        // 检查点配置：模拟真实的处理阶段
+        // [进度值, 到达该点的预估时间(ms), 停留时间(ms)]
+        this.checkpoints = config.checkpoints || [
+            { progress: 5, time: 500, pause: 100 },      // 初始化
+            { progress: 15, time: 2000, pause: 200 },    // 开始处理
+            { progress: 25, time: 4000, pause: 150 },    // 解析请求
+            { progress: 35, time: 7000, pause: 300 },    // 生成中...
+            { progress: 45, time: 10000, pause: 200 },   // 持续生成
+            { progress: 60, time: 15000, pause: 400 },   // 主要内容
+            { progress: 75, time: 20000, pause: 300 },   // 接近完成
+            { progress: 85, time: 25000, pause: 200 },   // 收尾阶段
+            { progress: 92, time: 30000, pause: 0 },     // 等待完成
+        ];
+
+        this.currentCheckpointIndex = 0;
+        this.lastCheckpointTime = Date.now();
+        this.isPaused = false;
+        this.pauseEndTime = 0;
 
         // 配置参数
-        this.maxProgress = config.maxProgress || 92; // 模拟进度最大值
-        this.duration = config.duration || 30000; // 预估总时长（毫秒）
-        this.updateInterval = config.updateInterval || 100; // 更新间隔（毫秒）
+        this.updateInterval = config.updateInterval || 50; // 更新间隔（毫秒）
+        this.completionDuration = config.completionDuration || 300; // 完成动画时长
 
-        // 使用缓动函数使进度更自然（开始快，后面慢）
-        this.easingFn = (t) => {
-            // ease-out-cubic: 1 - (1 - t)^3
-            return 1 - Math.pow(1 - t, 3);
-        };
+        // 流数据相关
+        this.totalCharsReceived = 0;
+        this.lastCharsReceived = 0;
     }
 
     /**
@@ -40,16 +58,67 @@ class SimulatedProgressManager {
                 return;
             }
 
-            const elapsed = Date.now() - this.startTime;
-            const t = Math.min(elapsed / this.duration, 1);
-            const easedProgress = this.easingFn(t) * this.maxProgress;
-
-            // 确保进度只增不减
-            if (easedProgress > this.currentProgress) {
-                this.currentProgress = easedProgress;
-                this.updateProgress(this.currentProgress);
-            }
+            this.tick();
         }, this.updateInterval);
+    }
+
+    /**
+     * 每帧更新
+     */
+    tick() {
+        const now = Date.now();
+
+        // 如果在停顿中，等待停顿结束
+        if (this.isPaused) {
+            if (now >= this.pauseEndTime) {
+                this.isPaused = false;
+                this.lastCheckpointTime = now;
+                this.currentCheckpointIndex++;
+            }
+            return;
+        }
+
+        // 获取当前和下一个检查点
+        if (this.currentCheckpointIndex >= this.checkpoints.length) {
+            return; // 已到达最后一个检查点
+        }
+
+        const currentCp = this.currentCheckpointIndex > 0
+            ? this.checkpoints[this.currentCheckpointIndex - 1]
+            : { progress: 0, time: 0, pause: 0 };
+        const nextCp = this.checkpoints[this.currentCheckpointIndex];
+
+        // 计算当前检查点段的进度
+        const segmentStartTime = this.currentCheckpointIndex === 0
+            ? this.startTime
+            : this.lastCheckpointTime;
+        const segmentDuration = nextCp.time - (currentCp.time || 0);
+        const elapsed = now - segmentStartTime;
+        const t = Math.min(elapsed / segmentDuration, 1);
+
+        // 使用 ease-out 缓动在检查点之间过渡
+        const eased = 1 - Math.pow(1 - t, 2);
+        const progressInSegment = currentCp.progress + (nextCp.progress - currentCp.progress) * eased;
+
+        // 更新进度（只增不减）
+        if (progressInSegment > this.currentProgress) {
+            this.currentProgress = progressInSegment;
+            this.updateProgress(this.currentProgress);
+        }
+
+        // 到达检查点时触发停顿
+        if (t >= 1) {
+            this.currentProgress = nextCp.progress;
+            this.updateProgress(this.currentProgress);
+
+            if (nextCp.pause > 0) {
+                this.isPaused = true;
+                this.pauseEndTime = now + nextCp.pause;
+            } else {
+                this.lastCheckpointTime = now;
+                this.currentCheckpointIndex++;
+            }
+        }
     }
 
     /**
@@ -57,12 +126,35 @@ class SimulatedProgressManager {
      * @param {number} charsReceived 已接收字符数
      */
     onStreamData(charsReceived) {
-        // 当收到流数据时，适度加速进度
-        // 每收到 100 字符，进度至少推进一点
-        const minProgress = Math.min(this.maxProgress, 10 + charsReceived / 50);
-        if (minProgress > this.currentProgress) {
-            this.currentProgress = minProgress;
-            this.updateProgress(this.currentProgress);
+        this.totalCharsReceived = charsReceived;
+        const newChars = charsReceived - this.lastCharsReceived;
+        this.lastCharsReceived = charsReceived;
+
+        // 根据收到的字符数加速进度
+        // 每收到数据，至少推进到当前检查点的 50%
+        if (newChars > 0 && this.currentCheckpointIndex < this.checkpoints.length) {
+            const currentCp = this.currentCheckpointIndex > 0
+                ? this.checkpoints[this.currentCheckpointIndex - 1]
+                : { progress: 0 };
+            const nextCp = this.checkpoints[this.currentCheckpointIndex];
+
+            // 根据字符数推进进度
+            const charBasedProgress = Math.min(
+                nextCp.progress,
+                currentCp.progress + (charsReceived / 30) // 每30字符推进1%
+            );
+
+            if (charBasedProgress > this.currentProgress) {
+                this.currentProgress = charBasedProgress;
+                this.updateProgress(this.currentProgress);
+
+                // 如果超过当前检查点，跳到下一个
+                if (this.currentProgress >= nextCp.progress) {
+                    this.currentCheckpointIndex++;
+                    this.lastCheckpointTime = Date.now();
+                    this.isPaused = false;
+                }
+            }
         }
     }
 
@@ -77,12 +169,42 @@ class SimulatedProgressManager {
     }
 
     /**
-     * 完成进度
+     * 完成进度（带平滑动画从当前进度过渡到100%）
      */
     complete() {
         this.isCompleted = true;
         this.stop();
-        this.updateProgress(100);
+
+        // 平滑过渡到 100%
+        const startProgress = this.currentProgress;
+        const progressDiff = 100 - startProgress;
+        const startTime = Date.now();
+        const duration = this.completionDuration;
+
+        // 如果差距很小，直接完成
+        if (progressDiff <= 1) {
+            this.updateProgress(100);
+            return;
+        }
+
+        // 使用 setInterval 进行平滑动画
+        this.completionIntervalId = setInterval(() => {
+            const elapsed = Date.now() - startTime;
+            const t = Math.min(elapsed / duration, 1);
+
+            // 使用 ease-out 缓动
+            const eased = 1 - Math.pow(1 - t, 2);
+            const newProgress = startProgress + progressDiff * eased;
+
+            this.currentProgress = newProgress;
+            this.updateProgress(newProgress);
+
+            if (t >= 1) {
+                clearInterval(this.completionIntervalId);
+                this.completionIntervalId = null;
+                this.updateProgress(100);
+            }
+        }, 16); // ~60fps
     }
 
     /**

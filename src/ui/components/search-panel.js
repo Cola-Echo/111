@@ -85,6 +85,18 @@ export class MemorySearchPanel {
                 this.toggleMinimize();
             });
 
+        // 一键全选按钮
+        const injectAllBtn = document.getElementById("mm-search-inject-all");
+        if (injectAllBtn) {
+            injectAllBtn.addEventListener("click", () => {
+                Logger.debug("[一键全选] 按钮被点击");
+                this.selectAllUnrejected();
+            });
+            Logger.debug("[记忆搜索助手] 一键全选按钮事件已绑定");
+        } else {
+            Logger.warn("[记忆搜索助手] 一键全选按钮未找到，事件未绑定");
+        }
+
         // 确认注入按钮
         document
             .getElementById("mm-search-confirm")
@@ -899,6 +911,68 @@ export class MemorySearchPanel {
         }
 
         return historicalLines.join("\n");
+    }
+
+    /**
+     * 一键全选所有未拒绝、未移除的记忆
+     * 将所有未被拒绝的搜索结果标记为已采纳，用户再点确认注入完成操作
+     */
+    selectAllUnrejected() {
+        // 获取所有搜索结果项
+        const container = document.getElementById("mm-search-books-container");
+        if (!container) {
+            Logger.warn("[一键全选] 容器 mm-search-books-container 未找到");
+            return;
+        }
+
+        const allResultItems = container.querySelectorAll(".mm-search-result-item");
+        Logger.debug(`[一键全选] 找到 ${allResultItems.length} 个搜索结果项`);
+
+        if (allResultItems.length === 0) {
+            // 使用第一个世界书面板显示消息
+            if (this.summaryBooks.length > 0) {
+                this.addBookSystemMessage(this.summaryBooks[0].name, "没有可选择的搜索结果");
+            }
+            return;
+        }
+
+        let selectedCount = 0;
+        const beforeCount = this.selectedMemories.length;
+
+        for (const resultItem of allResultItems) {
+            // 跳过已拒绝的
+            if (resultItem.classList.contains("mm-rejected")) {
+                continue;
+            }
+
+            // 跳过已经采纳的（已在 selectedMemories 中）
+            if (resultItem.classList.contains("mm-adopted")) {
+                continue;
+            }
+
+            // 检查是否有 _memoryData
+            if (!resultItem._memoryData) {
+                Logger.warn("[一键全选] 搜索结果项缺少 _memoryData:", resultItem.dataset.resultId);
+                continue;
+            }
+
+            // 通过已有的 adoptMemory 方法采纳
+            this.adoptMemory(resultItem);
+            selectedCount++;
+        }
+
+        const actualAdopted = this.selectedMemories.length - beforeCount;
+        Logger.debug(`[一键全选] 尝试选择 ${selectedCount} 条，实际采纳 ${actualAdopted} 条`);
+
+        // 使用第一个世界书面板显示消息
+        const firstBookName = this.summaryBooks.length > 0 ? this.summaryBooks[0].name : null;
+        if (firstBookName) {
+            if (actualAdopted === 0) {
+                this.addBookSystemMessage(firstBookName, "没有新的条目可选择（可能都已采纳或拒绝）");
+            } else {
+                this.addBookSystemMessage(firstBookName, `已全选 ${actualAdopted} 条记忆，请点击「确认注入」完成操作`);
+            }
+        }
     }
 
     /**

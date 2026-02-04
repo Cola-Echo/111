@@ -641,9 +641,24 @@ function bindSettingsEvents() {
         ?.addEventListener("change", (e) => {
             const checked = e.target.checked;
             updateGlobalSettings({ enableRecentPlot: checked });
+            // 显示/隐藏字数滑条
+            const lengthContainer = document.getElementById("mm-recent-plot-length-container");
+            if (lengthContainer) {
+                lengthContainer.style.display = checked ? "block" : "none";
+            }
             if (typeof toastr !== 'undefined') {
                 toastr.success(`剧情末尾已${checked ? "启用" : "禁用"}`, "记忆管理并发系统");
             }
+        });
+
+    // 剧情末尾字数滑块
+    document
+        .getElementById("mm-recent-plot-length")
+        ?.addEventListener("input", (e) => {
+            const value = parseInt(e.target.value) ?? 200;
+            const valueEl = document.getElementById("mm-recent-plot-length-value");
+            if (valueEl) valueEl.textContent = value;
+            updateGlobalSettings({ recentPlotLength: value });
         });
 
     // 上下文轮数滑块
@@ -1504,6 +1519,21 @@ export function loadGlobalSettingsUI() {
     const recentPlotCheckbox = document.getElementById("mm-enable-recent-plot");
     if (recentPlotCheckbox) {
         recentPlotCheckbox.checked = settings.enableRecentPlot !== false;
+    }
+
+    // 剧情末尾字数滑条
+    const recentPlotLengthContainer = document.getElementById("mm-recent-plot-length-container");
+    const recentPlotLengthInput = document.getElementById("mm-recent-plot-length");
+    const recentPlotLengthValue = document.getElementById("mm-recent-plot-length-value");
+    if (recentPlotLengthContainer) {
+        // 根据启用状态显示/隐藏
+        recentPlotLengthContainer.style.display = settings.enableRecentPlot !== false ? "block" : "none";
+    }
+    if (recentPlotLengthInput) {
+        recentPlotLengthInput.value = settings.recentPlotLength ?? 200;
+    }
+    if (recentPlotLengthValue) {
+        recentPlotLengthValue.textContent = settings.recentPlotLength ?? 200;
     }
 
     // 上下文轮次

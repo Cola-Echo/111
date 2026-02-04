@@ -503,10 +503,11 @@ export async function processMemoryForMessage(userMessage) {
         const context = getRecentContext(chat, contextRounds);
 
         // 获取标签过滤配置（用于最近剧情截取）
-        // [标签过滤调用点2] 用于处理最后一条助手消息的末尾200字
+        // [标签过滤调用点2] 用于处理最后一条助手消息的末尾
         const tagFilterConfig = globalConfig.contextTagFilter;
 
-        // 从最后一条助手消息中截取末尾200字
+        // 从最后一条助手消息中截取末尾（使用配置的字数，默认200）
+        const recentPlotLength = globalSettings.recentPlotLength ?? 200;
         let latestContext = "";
         if (
             globalSettings.enableRecentPlot !== false &&
@@ -530,7 +531,7 @@ export async function processMemoryForMessage(userMessage) {
                 // 使用 filterContentByRole 处理标签过滤（AI消息 = false）
                 content = filterContentByRole(content, tagFilterConfig, false);
 
-                latestContext = content.slice(-200).trim();
+                latestContext = content.slice(-recentPlotLength).trim();
             }
         }
 

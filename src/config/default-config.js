@@ -20,6 +20,7 @@ export const defaultConfig = Object.freeze({
         sendIndexOnly: false,
         showSummaryCheck: false,
         enableRecentPlot: true, // 启用剧情末尾（截取并注入到汇总检查）
+        recentPlotLength: 200, // 剧情末尾截取字数（10-300）
         // 索引合并模式配置
         indexMergeEnabled: false, // 是否启用索引合并
         indexMergeConfig: {
