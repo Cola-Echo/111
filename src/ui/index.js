@@ -88,6 +88,7 @@ export {
     setRefreshAIConfigListFunction,
     setFlowConfigFunctions,
     setPromptEditorFunctions,
+    setSummaryPartConfigModalFunction,
     // 标签过滤
     initTagFilterUI,
     updateTagFilterBadge,
@@ -179,6 +180,8 @@ export {
     restoreDefaultPrompt,
     switchPromptType,
     bindPromptEditorEvents,
+    // 总结世界书Part配置弹窗
+    showSummaryPartConfigModal,
 } from './modals';
 
 // 剧情优化助手面板

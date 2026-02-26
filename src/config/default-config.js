@@ -78,9 +78,59 @@ export const defaultConfig = Object.freeze({
         },
         // 剧情优化助手开关（移到 global 内部保持一致性）
         enablePlotOptimize: false,
+        // 表格填表并发配置
+        tableFillerConfig: {
+            enabled: false,
+            // 调用模式：'auto'（自动选择）、'bus_only'（仅Bus）、'intercept_only'（仅拦截）
+            callMode: "auto",
+            // 提示词模式：'independent'（独立）或 'shared'（共享）
+            promptMode: "shared",
+            // 重试次数（单个表格失败后重试的次数）
+            retryCount: 2,
+            // 重试延迟基数（毫秒），使用指数退避：第N次重试等待 retryDelay * 2^(N-1)
+            retryDelay: 2000,
+            // 导入的预设 JSON（包含所有表格的提示词配置）
+            importedPreset: null,
+            // 默认 API（未单独配置的表格使用）
+            defaultApi: {
+                apiUrl: "",
+                apiKey: "",
+                model: "",
+                apiFormat: "openai",
+                maxTokens: 4096,
+                temperature: 0.7,
+                responsePath: "choices.0.message.content",
+            },
+            // 每个表格的 API 配置（可选，留空则使用 defaultApi）
+            tableApiConfigs: {
+                // "角色表": { useDefault: true } 或 { apiUrl, apiKey, model, ... }
+            },
+        },
+        // 总结世界书自动拆分配置
+        summaryAutoSplit: {
+            enabled: false,                    // 全局开关
+            targetChars: 50000,                // 目标拆分字符数
+            minChars: 40000,                   // 最小字符数（确保段落完整）
+            maxChars: 60000,                   // 最大字符数（确保段落完整）
+        },
     },
     memoryConfigs: {},
     summaryConfigs: {},
+    // 拆分后的Part配置（动态生成，每个Part可独立配置API）
+    summaryPartConfigs: {
+        // "Amily2-Lore-char-哥布林杀手9.6": {
+        //     parts: [
+        //         {
+        //             id: "floor_1_60",
+        //             startFloor: 1,
+        //             endFloor: 60,
+        //             charCount: 48000,
+        //             apiConfig: { enabled: true, apiUrl: "...", model: "...", ... }
+        //         },
+        //         ...
+        //     ]
+        // }
+    },
     importedBooks: [],
     importedPromptFiles: {}, // 提示词文件存储（跨浏览器同步）
 });

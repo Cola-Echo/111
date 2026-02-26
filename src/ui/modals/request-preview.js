@@ -5,6 +5,7 @@
 
 import Logger from '@core/logger';
 import { getGlobalSettings, updateGlobalSettings } from '@config/config-manager';
+import { enableModalDrag } from './index';
 
 /**
  * 显示请求预览弹窗
@@ -40,7 +41,6 @@ export function showRequestPreview(requests) {
         content.className = "mm-modal-content mm-modal-large";
         content.style.width = "100%";
         content.style.maxWidth = "1000px";
-        content.style.height = "90vh";
         content.style.maxHeight = "90vh";
         content.style.overflow = "hidden";
         content.style.display = "flex";
@@ -198,6 +198,9 @@ export function showRequestPreview(requests) {
         header.appendChild(headerLeft);
         header.appendChild(closeBtn);
         content.appendChild(header);
+
+        // 启用弹窗拖拽移动
+        enableModalDrag(modal, content, header);
 
         // 创建弹窗主体 - 可滚动区域
         const body = document.createElement("div");

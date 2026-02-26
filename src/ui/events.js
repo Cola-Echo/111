@@ -39,6 +39,13 @@ import {
     bindWorldbookControlEvents,
 } from './components/worldbook-control';
 
+// 导入表格填表模块
+import {
+    initTableFillerUI,
+    bindTableFillerEvents,
+    updateTableFillerBadge,
+} from './components/table-filler';
+
 // 导入配置弹窗模块中的函数（用于直接调用而非函数注入）
 import {
     saveConfig as saveConfigModal,
@@ -63,6 +70,12 @@ export {
     loadWorldbookControlList,
     handleWorldbookSelect,
     toggleRecursionSetting,
+};
+
+export {
+    initTableFillerUI,
+    bindTableFillerEvents,
+    updateTableFillerBadge,
 };
 
 // 函数注入存储（用于在 index.js 中设置）
@@ -105,6 +118,9 @@ let restoreDefaultPromptFn = null;
 let importPromptFileFn = null;
 let exportPromptFileFn = null;
 let switchPromptTypeFn = null;
+
+// 总结世界书Part配置相关函数
+let showSummaryPartConfigModalFn = null;
 
 // 设置函数导出
 export function setTogglePanelFunction(fn) { togglePanelFn = fn; }
@@ -153,6 +169,11 @@ export function setPromptEditorFunctions(show, hide, save, saveAs, del, restore,
     importPromptFileFn = importFn;
     exportPromptFileFn = exportFn;
     switchPromptTypeFn = switchType;
+}
+
+// 总结世界书Part配置设置函数
+export function setSummaryPartConfigModalFunction(fn) {
+    showSummaryPartConfigModalFn = fn;
 }
 
 // 兼容旧版导出名称
@@ -927,7 +948,21 @@ function bindWorldBookListEvents() {
         if (editBtn) {
             const category = editBtn.dataset.category;
             const type = editBtn.dataset.type || "memory";
-            if (showConfigModalFn) showConfigModalFn(category, type);
+
+            // 检查是否有 Part 信息（总结世界书拆分模式）
+            let partInfo = null;
+            if (editBtn.dataset.partId) {
+                partInfo = {
+                    partId: editBtn.dataset.partId,
+                    partIndex: parseInt(editBtn.dataset.partIndex || "0", 10),
+                    startFloor: parseInt(editBtn.dataset.startFloor || "0", 10),
+                    endFloor: parseInt(editBtn.dataset.endFloor || "0", 10),
+                    charCount: parseInt(editBtn.dataset.charCount || "0", 10),
+                    bookName: editBtn.dataset.bookName || category,
+                };
+            }
+
+            if (showConfigModalFn) showConfigModalFn(category, type, partInfo);
             return;
         }
 
@@ -948,6 +983,20 @@ function bindWorldBookListEvents() {
                 removeImportedBook(bookName);
                 refreshWorldBookList();
                 Logger.log(`已移除世界书 "${bookName}"`);
+            }
+            return;
+        }
+
+        // 编辑Part配置
+        const editPartBtn = e.target.closest('[data-action="edit-part-config"]');
+        if (editPartBtn) {
+            const bookName = editPartBtn.dataset.book;
+            const partId = editPartBtn.dataset.partId;
+            Logger.log(`[Events] 点击Part配置: book=${bookName}, partId=${partId}, fn=${!!showSummaryPartConfigModalFn}`);
+            if (showSummaryPartConfigModalFn) {
+                showSummaryPartConfigModalFn(bookName, partId);
+            } else {
+                Logger.warn('[Events] showSummaryPartConfigModalFn 未设置');
             }
             return;
         }
@@ -1570,6 +1619,9 @@ export function loadGlobalSettingsUI() {
 
     // 初始化标签过滤 UI
     initTagFilterUI(settings.contextTagFilter);
+
+    // 初始化表格填表 UI
+    initTableFillerUI();
 }
 
 /**
@@ -1796,6 +1848,57 @@ export function bindEvents() {
     bindWorldbookControlEvents();
     bindGameEvents();
     bindMultiAIEvents();
+    bindTableFillerEvents();
+    bindSummaryAutoSplitEvents();
 
     Logger.log("UI 事件绑定完成");
 }
+
+/**
+ * 绑定总结世界书自动拆分事件
+ */
+function bindSummaryAutoSplitEvents() {
+    // 使用事件委托处理动态创建的开关
+    document.addEventListener("change", (e) => {
+        if (e.target.id === "mm-summary-auto-split-toggle") {
+            const enabled = e.target.checked;
+            import('@config/config-manager').then(({ setSummaryAutoSplitEnabled }) => {
+                setSummaryAutoSplitEnabled(enabled);
+                // 刷新世界书列表以更新Part显示
+                refreshWorldBookList();
+                Logger.log(`[SummaryAutoSplit] 自动拆分已${enabled ? '启用' : '禁用'}`);
+            });
+        }
+
+        // Part 调试模式开关
+        if (e.target.id === "mm-summary-part-debug-toggle") {
+            const enabled = e.target.checked;
+            import('@memory/part-debug-modal').then(({ setPartDebugEnabled }) => {
+                setPartDebugEnabled(enabled);
+                if (typeof toastr !== "undefined") {
+                    if (enabled) {
+                        toastr.info("已启用调试模式，处理完成后将显示各Part返回内容", "Part调试");
+                    } else {
+                        toastr.info("已关闭调试模式", "Part调试");
+                    }
+                }
+            });
+        }
+
+        // 合并去重开关
+        if (e.target.id === "mm-summary-merge-deduplicate-toggle") {
+            const enabled = e.target.checked;
+            import('@config/config-manager').then(({ setSummaryMergeDeduplicateEnabled }) => {
+                setSummaryMergeDeduplicateEnabled(enabled);
+                if (typeof toastr !== "undefined") {
+                    if (enabled) {
+                        toastr.info("已启用去重，同一楼层只保留第一个", "合并去重");
+                    } else {
+                        toastr.info("已关闭去重，相同楼层内容会放在一起", "合并去重");
+                    }
+                }
+            });
+        }
+    });
+}
+

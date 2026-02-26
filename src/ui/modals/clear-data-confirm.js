@@ -63,9 +63,11 @@ export function showClearDataConfirmModal() {
                 <ul style="margin: 0 0 16px 20px; padding: 0; line-height: 1.8; color: var(--mm-text-muted);">
                     <li><i class="fa-solid fa-robot" style="width: 16px; margin-right: 6px; color: #27ae60;"></i>记忆分类 API 配置</li>
                     <li><i class="fa-solid fa-scroll" style="width: 16px; margin-right: 6px; color: #27ae60;"></i>总结世界书 API 配置</li>
+                    <li><i class="fa-solid fa-puzzle-piece" style="width: 16px; margin-right: 6px; color: #27ae60;"></i>总结世界书拆分 API 配置（Part 配置）</li>
                     <li><i class="fa-solid fa-layer-group" style="width: 16px; margin-right: 6px; color: #27ae60;"></i>索引合并 API 配置</li>
                     <li><i class="fa-solid fa-wand-magic-sparkles" style="width: 16px; margin-right: 6px; color: #27ae60;"></i>剧情优化 API 配置</li>
                     <li><i class="fa-solid fa-users" style="width: 16px; margin-right: 6px; color: #27ae60;"></i>多AI生成的 API 配置（但会解除其提示词预设关联）</li>
+                    <li><i class="fa-solid fa-table" style="width: 16px; margin-right: 6px; color: #27ae60;"></i>Amily表格并发 API 配置（但会清除导入的预设）</li>
                 </ul>
             </div>
 

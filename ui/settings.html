@@ -545,6 +545,187 @@
           </small>
         </div>
       </div>
+
+      <!-- Amily表格并发（可折叠） -->
+      <div class="mm-collapse-card" id="mm-table-filler-card">
+        <div class="mm-collapse-header" id="mm-table-filler-toggle">
+          <div class="mm-collapse-title">
+            <i class="fa-solid fa-table-cells"></i>
+            <span>Amily表格并发</span>
+            <span class="mm-collapse-badge" id="mm-table-filler-badge">关闭</span>
+          </div>
+          <i class="fa-solid fa-chevron-down mm-collapse-arrow"></i>
+        </div>
+        <div class="mm-collapse-body">
+          <!-- 模式兼容性警告 -->
+          <div id="mm-table-filler-mode-warning" class="mm-warning-box" style="display:none;">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span>仅支持 Amily2「分步填表」模式，当前：<strong id="mm-table-filler-current-mode">-</strong></span>
+          </div>
+
+          <!-- 启用开关 -->
+          <div class="mm-setting-item">
+            <label class="mm-label-with-hint">
+              <input type="checkbox" id="mm-table-filler-enabled" />
+              启用Amily表格并发
+              <i class="fa-solid fa-circle-question mm-hint-icon" title="拦截 Amily2 表格填充请求，将7个表格拆分后并发调用API，提升填表效率"></i>
+            </label>
+          </div>
+
+          <!-- 并发API配置区域 -->
+          <div class="mm-multi-ai-provider-section">
+            <div class="mm-multi-ai-section-header">
+              <span class="mm-multi-ai-section-title">
+                并发API配置
+                <i class="fa-solid fa-circle-question mm-hint-icon" title="自动检测Amily2表格，为每个表格配置独立的API实现多模型并发"></i>
+              </span>
+              <div class="mm-section-header-right">
+                <span class="mm-config-model-badge" id="mm-table-filler-config-count">检测中...</span>
+                <button type="button" id="mm-table-filler-add-table-api" class="mm-btn mm-btn-icon mm-btn-xs" title="刷新表格列表">
+                  <i class="fa-solid fa-rotate"></i>
+                </button>
+              </div>
+            </div>
+            <div class="mm-multi-ai-provider-list" id="mm-table-filler-api-list">
+              <!-- 动态生成表格API配置项 -->
+            </div>
+            <div class="mm-table-filler-api-empty" id="mm-table-filler-api-empty">
+              <i class="fa-solid fa-spinner fa-spin"></i>
+              <span>正在检测 Amily2 表格...</span>
+            </div>
+          </div>
+
+          <!-- 高级设置（可折叠） -->
+          <div class="mm-table-filler-advanced">
+            <div class="mm-table-filler-advanced-header" id="mm-table-filler-advanced-toggle">
+              <span><i class="fa-solid fa-sliders"></i> 高级设置</span>
+              <div class="mm-advanced-header-right">
+                <span class="mm-collapse-badge" id="mm-prompt-mode-badge">共享模式</span>
+                <i class="fa-solid fa-chevron-down mm-collapse-arrow-sm"></i>
+              </div>
+            </div>
+            <div class="mm-table-filler-advanced-body" id="mm-table-filler-advanced-body" style="display:none;">
+              <!-- 调用模式与状态（同一行） -->
+              <div class="mm-setting-item mm-call-mode-row">
+                <div class="mm-call-mode-left">
+                  <label class="mm-label-with-hint">
+                    调用模式
+                    <i class="fa-solid fa-circle-question mm-hint-icon" title="自动选择：优先Bus联动，否则拦截模式&#10;仅拦截：劫持API调用，无需Amily2配合&#10;仅Bus：等待Amily2主动调用"></i>
+                  </label>
+                  <select id="mm-table-filler-call-mode" class="mm-select mm-select-sm">
+                    <option value="auto">自动选择</option>
+                    <option value="intercept_only">仅拦截</option>
+                    <option value="bus_only">仅Bus</option>
+                  </select>
+                </div>
+                <div class="mm-call-mode-right">
+                  <span class="mm-status-badge mm-status-badge-sm" id="mm-table-filler-bus-status">Bus: 检测中</span>
+                  <span class="mm-status-badge mm-status-badge-sm" id="mm-table-filler-intercept-status">拦截: 检测中</span>
+                </div>
+              </div>
+
+              <!-- 重试次数 -->
+              <div class="mm-setting-item">
+                <label class="mm-label-with-hint">
+                  失败重试次数
+                  <i class="fa-solid fa-circle-question mm-hint-icon" title="单个表格API调用失败后的重试次数&#10;使用指数退避策略&#10;设为0表示不重试"></i>
+                </label>
+                <div class="mm-slider-row">
+                  <input
+                    type="range"
+                    id="mm-table-filler-retry-count"
+                    value="2"
+                    min="0"
+                    max="5"
+                    step="1"
+                  />
+                  <span id="mm-table-filler-retry-count-value">2</span>
+                </div>
+                <small class="mm-hint">API调用失败后自动重试的次数（0-5次）</small>
+              </div>
+
+              <!-- 重试延迟时间 -->
+              <div class="mm-setting-item">
+                <label class="mm-label-with-hint">
+                  重试延迟基数
+                  <i class="fa-solid fa-circle-question mm-hint-icon" title="每次重试前的等待时间基数（毫秒）&#10;使用指数退避：第1次=基数，第2次=基数×2，第3次=基数×4...&#10;例如基数2000ms：第1次等2秒，第2次等4秒，第3次等8秒"></i>
+                </label>
+                <div class="mm-slider-row">
+                  <input
+                    type="range"
+                    id="mm-table-filler-retry-delay"
+                    value="2000"
+                    min="500"
+                    max="10000"
+                    step="500"
+                  />
+                  <span id="mm-table-filler-retry-delay-value">2000</span>
+                  <span class="mm-unit">ms</span>
+                </div>
+                <small class="mm-hint">重试延迟基数，避免请求过于频繁（500-10000毫秒）</small>
+              </div>
+
+              <!-- 提示词模式 -->
+              <div class="mm-setting-item">
+                <div class="mm-prompt-mode-row">
+                  <label class="mm-label-with-hint">
+                    提示词模式
+                    <i class="fa-solid fa-circle-question mm-hint-icon" title="共享模式：复用Amily2原始提示词&#10;独立模式：导入专用预设，每个表格使用专属提示词"></i>
+                  </label>
+                  <div class="mm-segmented-control">
+                    <input type="radio" name="mm-prompt-mode" id="mm-prompt-mode-shared" value="shared" checked />
+                    <label for="mm-prompt-mode-shared">共享</label>
+                    <input type="radio" name="mm-prompt-mode" id="mm-prompt-mode-independent" value="independent" />
+                    <label for="mm-prompt-mode-independent">独立</label>
+                    <span class="mm-segmented-slider"></span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 调试模式 -->
+              <div class="mm-setting-item">
+                <div class="mm-debug-mode-row">
+                  <label class="mm-label-with-hint">
+                    调试模式
+                    <i class="fa-solid fa-circle-question mm-hint-icon" title="启用后可在发送前和合并后检查提示词内容"></i>
+                  </label>
+                  <label class="mm-switch">
+                    <input type="checkbox" id="mm-table-filler-debug-mode" />
+                    <span class="mm-switch-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 独立模式：预设区域 -->
+              <div id="mm-table-filler-independent-section" style="display:none;">
+                <div class="mm-setting-item">
+                  <label class="mm-label-with-hint">
+                    独立提示词模板
+                    <i class="fa-solid fa-circle-question mm-hint-icon" title="为每个表格配置独立的提示词模板，使用占位符注入表格数据"></i>
+                  </label>
+                  <div class="mm-preset-row">
+                    <span class="mm-preset-version" id="mm-table-filler-template-status">未配置</span>
+                    <div class="mm-preset-actions">
+                      <button type="button" id="mm-table-filler-edit-templates" class="mm-btn mm-btn-xs mm-btn-primary" title="编辑模板">
+                        <i class="fa-solid fa-edit"></i> 编辑
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 替换标签名 -->
+                <div class="mm-setting-item">
+                  <label class="mm-label-with-hint">
+                    替换标签名
+                    <i class="fa-solid fa-circle-question mm-hint-icon" title="独立模式会查找原始���示词中的 <标签名>...</标签名> 标签，将其内容替换为你配置的独立预设。默认标签名为「Instructions for filling out the form」，如果Amily使用了不同的标签名，请在此修改。"></i>
+                  </label>
+                  <input type="text" id="mm-table-filler-tag-name" class="mm-input mm-input-sm" placeholder="Instructions for filling out the form" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -730,6 +911,12 @@
     </div>
 
     <div class="mm-modal-body">
+      <!-- 楼层+字符信息横幅（仅总结世界书显示） -->
+      <div id="mm-config-part-info" class="mm-part-info-banner" style="display: none;">
+        <i class="fa-solid fa-layer-group"></i>
+        <span id="mm-config-part-info-text">-</span>
+      </div>
+
       <!-- Tab 切换（仅剧情优化时显示） -->
       <div id="mm-config-tabs" class="mm-config-tabs" style="display: none;">
         <button id="mm-config-tab-api" class="mm-config-tab active" data-tab="api">
@@ -1192,4 +1379,170 @@
     </div>
   </div>
 </div>
+
+<!-- Amily表格并发 API配置弹窗 -->
+<div id="mm-table-filler-api-modal" class="mm-modal">
+  <div class="mm-modal-content">
+    <div class="mm-modal-header">
+      <h4 id="mm-table-filler-api-title">配置API</h4>
+      <button class="mm-modal-close mm-btn mm-btn-icon">
+        <i class="fa-solid fa-times"></i>
+      </button>
+    </div>
+
+    <div class="mm-modal-body">
+      <!-- API 格式 -->
+      <div class="mm-form-group">
+        <label>API 格式</label>
+        <div class="mm-radio-group">
+          <label><input type="radio" name="mm-table-filler-api-format" value="openai" checked /> OpenAI 兼容</label>
+          <label><input type="radio" name="mm-table-filler-api-format" value="anthropic" /> Anthropic</label>
+          <label><input type="radio" name="mm-table-filler-api-format" value="google" /> Google</label>
+          <label><input type="radio" name="mm-table-filler-api-format" value="custom" /> 自定义</label>
+        </div>
+      </div>
+
+      <!-- API URL -->
+      <div class="mm-form-group">
+        <label>API URL <span class="mm-required">*</span></label>
+        <input type="text" id="mm-table-filler-api-url" placeholder="https://api.openai.com/v1" />
+      </div>
+
+      <!-- API Key -->
+      <div class="mm-form-group">
+        <label>API Key</label>
+        <input type="password" id="mm-table-filler-api-key" placeholder="sk-..." />
+      </div>
+
+      <!-- 模型名称 -->
+      <div class="mm-form-group">
+        <label>模型名称 <span class="mm-required">*</span></label>
+        <div class="mm-model-input-row">
+          <select id="mm-table-filler-api-model" class="mm-model-select">
+            <option value="" disabled selected>--- 请获取模型 ---</option>
+          </select>
+          <button type="button" id="mm-table-filler-fetch-models" class="mm-btn mm-btn-secondary" title="从API获取模型列表">
+            <i class="fa-solid fa-download"></i> 获取
+          </button>
+        </div>
+      </div>
+
+      <!-- Max Tokens 和 Temperature -->
+      <div class="mm-form-row">
+        <div class="mm-form-group">
+          <label>Max Tokens</label>
+          <input type="number" id="mm-table-filler-api-max-tokens" value="4096" min="100" max="32000" />
+        </div>
+        <div class="mm-form-group">
+          <label>Temperature</label>
+          <input type="range" id="mm-table-filler-api-temperature" value="0.7" min="0" max="1" step="0.1" />
+          <span id="mm-table-filler-api-temperature-value">0.7</span>
+        </div>
+      </div>
+
+      <!-- 自定义格式选项 -->
+      <div id="mm-table-filler-custom-options" class="mm-hidden">
+        <div class="mm-form-group">
+          <label>自定义请求模板 (JSON)</label>
+          <textarea id="mm-table-filler-custom-template" rows="3" placeholder='{"model": "{{model}}", "messages": {{messages}}}'></textarea>
+        </div>
+        <div class="mm-form-group">
+          <label>响应解析路径</label>
+          <input type="text" id="mm-table-filler-response-path" placeholder="choices.0.message.content" />
+        </div>
+      </div>
+
+      <!-- 测试连接 -->
+      <div class="mm-form-group">
+        <button id="mm-table-filler-test-connection" class="mm-btn mm-btn-secondary">
+          <i class="fa-solid fa-link"></i> 测试连接
+        </button>
+        <span id="mm-table-filler-test-result" class="mm-test-result"></span>
+      </div>
+    </div>
+
+    <div class="mm-modal-footer">
+      <button id="mm-table-filler-api-cancel" class="mm-btn mm-btn-secondary">取消</button>
+      <button id="mm-table-filler-api-save" class="mm-btn mm-btn-primary">保存配置</button>
+    </div>
+  </div>
+</div>
+
+<!-- Amily表格并发 表格选择弹窗 -->
+<div id="mm-table-filler-select-modal" class="mm-modal">
+  <div class="mm-modal-content mm-modal-sm">
+    <div class="mm-modal-header">
+      <h4>选择表格</h4>
+      <button class="mm-modal-close mm-btn mm-btn-icon">
+        <i class="fa-solid fa-times"></i>
+      </button>
+    </div>
+
+    <div class="mm-modal-body">
+      <div class="mm-table-select-list" id="mm-table-filler-table-list">
+        <!-- 动态生成表格选择列表 -->
+      </div>
+    </div>
+
+    <div class="mm-modal-footer">
+      <button id="mm-table-filler-select-cancel" class="mm-btn mm-btn-secondary">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- 独立模式模板编辑弹窗 -->
+<div id="mm-independent-template-modal" class="mm-modal">
+  <div class="mm-modal-content mm-modal-large">
+    <div class="mm-modal-header">
+      <h4><i class="fa-solid fa-edit"></i> 独立模式 - 表格提示词配置</h4>
+      <button class="mm-modal-close mm-btn mm-btn-icon">
+        <i class="fa-solid fa-times"></i>
+      </button>
+    </div>
+
+    <div class="mm-modal-body">
+      <div class="mm-independent-template-intro">
+        <div class="mm-placeholder-help">
+          <span class="mm-placeholder-title">
+            <i class="fa-solid fa-code"></i> 可用占位符
+            <i class="fa-solid fa-circle-question mm-hint-icon" title="为每个表格配置独立的提示词模板。未配置的表格将使用共享模式处理。"></i>
+          </span>
+          <code class="mm-placeholder-item" title="单个表格完整数据块">{{tableData}}</code>
+          <code class="mm-placeholder-item" title="表格名称（如：角色表）">{{tableName}}</code>
+          <code class="mm-placeholder-item" title="表格索引号（如：0）">{{tableIndex}}</code>
+        </div>
+      </div>
+
+      <!-- 表格模板列表（手风琴折叠） -->
+      <div class="mm-template-list" id="mm-independent-template-list">
+        <!-- 动态生成表格模板项 -->
+        <div class="mm-template-loading">
+          <i class="fa-solid fa-spinner fa-spin"></i>
+          <span>加载表格列表...</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="mm-modal-footer">
+      <div class="mm-modal-actions-left">
+        <button id="mm-independent-template-import" class="mm-btn mm-btn-secondary" title="导入全部模板配置">
+          <i class="fa-solid fa-upload"></i> 导入
+        </button>
+        <button id="mm-independent-template-export" class="mm-btn mm-btn-secondary" title="导出全部模板配置">
+          <i class="fa-solid fa-download"></i> 导出
+        </button>
+        <button id="mm-independent-template-restore-all" class="mm-btn mm-btn-secondary" title="将所有模板恢复为内置默认">
+          <i class="fa-solid fa-rotate-left"></i> 全部恢复默认
+        </button>
+      </div>
+      <div class="mm-modal-actions-right">
+        <button id="mm-independent-template-cancel" class="mm-btn mm-btn-secondary">取消</button>
+        <button id="mm-independent-template-save" class="mm-btn mm-btn-primary">保存全部</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 独立模式模板导入文件输入 -->
+<input type="file" id="mm-independent-template-file" accept=".json" style="display:none;" />
 

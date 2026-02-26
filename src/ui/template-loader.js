@@ -49,12 +49,20 @@ export async function loadSettingsTemplate() {
         const plotOptimizeModal = container.querySelector("#mm-plot-optimize-modal");
         const flowConfigModal = container.querySelector("#mm-flow-config-modal");
         const multiAIConfigModal = container.querySelector("#mm-multi-ai-config-modal");
+        const tableFillerApiModal = container.querySelector("#mm-table-filler-api-modal");
+        const tableFillerSelectModal = container.querySelector("#mm-table-filler-select-modal");
+        const independentTemplateModal = container.querySelector("#mm-independent-template-modal");
+        const independentTemplateFile = container.querySelector("#mm-independent-template-file");
 
         if (settingsPanel) document.body.appendChild(settingsPanel);
         if (configModal) document.body.appendChild(configModal);
         if (plotOptimizeModal) document.body.appendChild(plotOptimizeModal);
         if (flowConfigModal) document.body.appendChild(flowConfigModal);
         if (multiAIConfigModal) document.body.appendChild(multiAIConfigModal);
+        if (tableFillerApiModal) document.body.appendChild(tableFillerApiModal);
+        if (tableFillerSelectModal) document.body.appendChild(tableFillerSelectModal);
+        if (independentTemplateModal) document.body.appendChild(independentTemplateModal);
+        if (independentTemplateFile) document.body.appendChild(independentTemplateFile);
 
         Logger.debug("设置模板已加载");
     } catch (e) {

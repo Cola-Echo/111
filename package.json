@@ -1,6 +1,6 @@
 {
   "name": "memory-manager-concurrent",
-  "version": "0.4.7",
+  "version": "0.5.0",
   "description": "SillyTavern 记忆管理并发系统 - 智能记忆检索与注入系统",
   "main": "dist/index.js",
   "scripts": {
@@ -14,7 +14,7 @@
     "webpack-cli": "^5.1.4"
   },
   "author": "可乐、繁华",
-  "license": "AGPL-3.0",
+  "license": "CC-BY-NC-ND-4.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/Cola-Echo/memory-manager-concurrent"

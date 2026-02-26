@@ -12,10 +12,15 @@ import {
     setMemoryConfig,
     setSummaryConfig,
     updateGlobalSettings,
+    setSummaryPartApiConfig,
+    isSummaryAutoSplitEnabled,
+    getSummaryAutoSplitConfig,
 } from "@config/config-manager";
 import Logger from "@core/logger";
 import { refreshWorldBookList } from "@worldbook/refresh";
 import { getWorldBookList, getWorldBookEntries } from "@worldbook/api";
+import { analyzeSummaryContent, formatCharCount } from "@worldbook/summary-splitter";
+import { getSummaryContent } from "@worldbook/parser";
 
 // 更新显示回调函数（将在初始化时注入）
 let updateIndexMergeModelDisplayFn = null;
@@ -34,6 +39,9 @@ export function setUpdateDisplayFunctions(indexMergeFn, plotOptimizeFn, refreshC
 // 当前编辑状态
 let currentEditingCategory = null;
 let currentEditingType = null;
+// Part 编辑状态（用于总结世界书拆分）
+let currentEditingPartId = null;
+let currentEditingPartInfo = null;
 
 // 剧情优化配置中选中的世界书和条目（临时状态）
 let plotConfigSelectedBooks = new Set();
@@ -41,6 +49,15 @@ let plotConfigSelectedEntries = {};
 // 配置弹窗世界书缓存
 let configWorldBooksCache = [];
 let configEntriesCache = {};
+
+/**
+ * 根据名称获取世界书对象
+ * @param {string} bookName 世界书名称
+ * @returns {object|null} 世界书对象
+ */
+function getWorldBookByName(bookName) {
+    return configWorldBooksCache.find(book => book.name === bookName) || null;
+}
 
 /**
  * 切换配置标签页
@@ -78,10 +95,13 @@ export function toggleCustomFormatOptions(show) {
  * 显示配置弹窗
  * @param {string} category 分类名称
  * @param {string} type 类型 ('memory' | 'summary' | 'merge' | 'plot')
+ * @param {object} partInfo Part信息（可选，用于总结世界书拆分）{ partId, partIndex, startFloor, endFloor, charCount, bookName }
  */
-export function showConfigModal(category, type = "memory") {
+export function showConfigModal(category, type = "memory", partInfo = null) {
     currentEditingCategory = category;
     currentEditingType = type;
+    currentEditingPartId = partInfo?.partId || null;
+    currentEditingPartInfo = partInfo || null;
 
     const modal = document.getElementById("mm-ai-config-modal");
     if (!modal) return;
@@ -99,15 +119,54 @@ export function showConfigModal(category, type = "memory") {
     if (type === "memory") {
         itemConfig = config?.memoryConfigs?.[category] || {};
     } else if (type === "summary") {
-        itemConfig = config?.summaryConfigs?.[category] || {};
+        // 如果是 Part 配置且不是 Part 1（index=0），从 Part 配置中获取
+        if (partInfo && partInfo.partIndex > 0) {
+            const partConfigs = config?.summaryPartConfigs?.[partInfo.bookName];
+            const savedPart = partConfigs?.parts?.find(p => p.id === partInfo.partId);
+            itemConfig = savedPart?.apiConfig || {};
+        } else {
+            itemConfig = config?.summaryConfigs?.[category] || {};
+        }
     } else if (type === "merge" || type === "indexMerge") {
         itemConfig = globalSettings.indexMergeConfig || {};
     } else if (type === "plot") {
         itemConfig = globalSettings.plotOptimizeConfig || {};
     }
 
+    // 设置标题
     const categoryNameEl = document.getElementById("mm-config-category-name");
-    if (categoryNameEl) categoryNameEl.textContent = category;
+    if (categoryNameEl) {
+        if (partInfo) {
+            categoryNameEl.textContent = `Part ${partInfo.partIndex + 1}`;
+        } else {
+            categoryNameEl.textContent = category;
+        }
+    }
+
+    // 显示/隐藏楼层+字符信息横幅
+    const partInfoBanner = document.getElementById("mm-config-part-info");
+    const partInfoText = document.getElementById("mm-config-part-info-text");
+    if (partInfoBanner && partInfoText) {
+        if (type === "summary") {
+            partInfoBanner.style.display = "flex";
+            if (partInfo) {
+                // 拆分模式：显示楼层范围和字符数
+                partInfoText.textContent = `${partInfo.startFloor}-${partInfo.endFloor}楼 ${formatCharCount(partInfo.charCount)} 字符 | ${partInfo.bookName}`;
+            } else {
+                // 非拆分模式：显示总字符数
+                const book = getWorldBookByName(category);
+                if (book) {
+                    const content = getSummaryContent(book);
+                    const totalChars = content.length;
+                    partInfoText.textContent = `${formatCharCount(totalChars)} 字符 | ${category}`;
+                } else {
+                    partInfoText.textContent = category;
+                }
+            }
+        } else {
+            partInfoBanner.style.display = "none";
+        }
+    }
 
     const enabledEl = document.getElementById("mm-config-enabled");
     if (enabledEl) enabledEl.checked = itemConfig.enabled !== false;
@@ -298,7 +357,19 @@ export async function saveConfig() {
     } else if (currentEditingType === "summary") {
         const eventsInput = document.getElementById("mm-config-max-events");
         aiConfig.maxHistoryEvents = parseInt(eventsInput?.value || "15", 10);
-        setSummaryConfig(currentEditingCategory, aiConfig);
+
+        // 如果是 Part 配置且不是 Part 1（index > 0），保存到 summaryPartConfigs
+        if (currentEditingPartInfo && currentEditingPartInfo.partIndex > 0) {
+            setSummaryPartApiConfig(
+                currentEditingPartInfo.bookName,
+                currentEditingPartId,
+                aiConfig
+            );
+            Logger.log(`已保存 Part ${currentEditingPartInfo.partIndex + 1} 配置`);
+        } else {
+            // Part 1 或非拆分模式，保存到 summaryConfigs
+            setSummaryConfig(currentEditingCategory, aiConfig);
+        }
     } else if (
         currentEditingType === "indexMerge" ||
         currentEditingType === "merge"

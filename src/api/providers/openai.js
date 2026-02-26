@@ -372,10 +372,10 @@ export async function callOpenAIWithMessages(
         headers["Authorization"] = `Bearer ${apiKey}`;
     }
 
-    const fullMessages = [
-        { role: "system", content: systemPrompt },
-        ...messages,
-    ];
+    // 构建消息列表，如果 systemPrompt 为空则不添加
+    const fullMessages = systemPrompt
+        ? [{ role: "system", content: systemPrompt }, ...messages]
+        : [...messages];
 
     const response = await fetch(apiUrl, {
         method: "POST",

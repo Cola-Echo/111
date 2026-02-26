@@ -28,7 +28,22 @@ export {
     refreshWorldBookList,
     getWorldBooksCache,
     clearWorldBooksCache,
+    getSummaryParts,
+    clearSummaryPartsCache,
 } from './refresh';
+
+// 总结世界书拆分模块
+export {
+    parseSegments,
+    analyzeSummaryContent,
+    calculateSplitPlan,
+    needsSplit,
+    getContentStats,
+    formatCharCount,
+    matchPartConfigs,
+    generatePartId,
+    getSummaryBookContent,
+} from './summary-splitter';
 
 // 更新列表模块
 export {

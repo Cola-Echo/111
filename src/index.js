@@ -1,8 +1,8 @@
 /**
  * 记忆管理并发系统 - 主入口
- * @version 0.4.0
+ * @version 0.4.9
  * @author 可乐、繁华
- * @license AGPLv3
+ * @license CC BY-NC-ND 4.0
  * @see https://github.com/Cola-Echo/memory-manager-concurrent
  *
  * 这是模块化重构后的入口文件
@@ -96,6 +96,9 @@ import {
     // 模型显示更新
     updateIndexMergeModelDisplay,
     updatePlotOptimizeModelDisplay,
+    // 总结世界书拆分配置弹窗
+    setSummaryPartConfigModalFunction,
+    showSummaryPartConfigModal,
 } from "@ui";
 
 // 世界书模块
@@ -123,8 +126,11 @@ import {
     getHistoricalPromptTemplate,
 } from "@memory";
 
+// 表格填表模块
+import { initTableFiller } from "@table-filler/index";
+
 // 版本信息
-const VERSION = "0.4.7";
+const VERSION = "0.4.9";
 
 // 面板状态
 let isPanelVisible = false;
@@ -260,6 +266,9 @@ async function initPlugin() {
             refreshAIConfigList,
         );
 
+        // 设置总结世界书拆分配置弹窗函数
+        setSummaryPartConfigModalFunction(showSummaryPartConfigModal);
+
         // 注入记忆处理回调
         setProcessMemoryCallback(processMemoryForMessage);
 
@@ -342,6 +351,13 @@ async function initUI() {
 
         // 启动世界书轮询检测
         startWorldBookPolling();
+
+        // 初始化表格填表模块（延迟以确保 Amily2 加载完成）
+        setTimeout(() => {
+            initTableFiller().catch((e) => {
+                Logger.debug("表格填表模块初始化失败:", e);
+            });
+        }, 3000);
 
         Logger.log("UI 初始化完成");
     } catch (error) {

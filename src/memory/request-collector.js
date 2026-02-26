@@ -8,9 +8,13 @@ import {
     getGlobalSettings,
     getMemoryConfig,
     getSummaryConfig,
+    isSummaryAutoSplitEnabled,
+    getSummaryAutoSplitConfig,
+    getSummaryPartApiConfig,
 } from "@config/config-manager";
 import Logger from "@core/logger";
 import { formatAsWorldBook, getSummaryContent } from "@worldbook/parser";
+import { analyzeSummaryContent } from "@worldbook/summary-splitter";
 import { getJailbreakPrefix } from "./jailbreak";
 import {
     buildDataInjection,
@@ -26,16 +30,16 @@ import {
 // 来源标签映射（与 flow-config.js 保持一致）
 const SOURCE_LABELS = {
     jailbreak: "[条件块] 破限词",
-    main: "[条件块] 主提示词 (mainPrompt → <数据注入区>前)",
+    main: "[条件块] 主提示词 (mainPrompt 到 <数据注入点>)",
     user: "[条件块] 核心用户消息 <核心用户消息>",
     worldbook: "[条件块] 世界书内容 <世界书内容>",
     context: "[条件块] 前文内容 <前文内容>",
-    auxiliary: "[条件块] 辅助提示词 (systemPrompt → <数据注入区>后)",
+    auxiliary: "[条件块] 辅助提示词 (systemPrompt 从 <数据注入点>)",
 };
 
 /**
  * 根据流程配置对 promptParts 重新排序
- * @param {Array} promptParts 原始 prompt 部分列表
+ * @param {Array} promptParts 原�� prompt 部分列表
  * @param {string} flowType 流程类型
  * @returns {Array} 排序后的 promptParts
  */
@@ -86,23 +90,27 @@ export async function collectMemoryRequestInfo(category, data, userMessage, cont
         });
 
         const template = await getPromptTemplate();
-        const prompt = injectDataToPrompt(template, dataInjection);
-        const baseSystemPrompt = replacePromptVariables(
+
+        // 获取破限词前缀
+        const jailbreakPrefix = getJailbreakPrefix();
+
+        // 使用与 processor.js 相同的方式构建提示词（包含流程配置顺序）
+        const prompt = injectDataToPrompt(template, dataInjection, {
+            flowType: "记忆世界书",
+            jailbreakPrefix: jailbreakPrefix,
+        });
+
+        // 替换变量得到最终系统提示词
+        const finalSystemPrompt = replacePromptVariables(
             prompt.systemPrompt,
             aiConfig,
             globalConfig,
         );
 
-        // 添加破限词前缀
-        const jailbreakPrefix = getJailbreakPrefix();
-        const finalSystemPrompt = jailbreakPrefix
-            ? jailbreakPrefix + "\n\n" + baseSystemPrompt
-            : baseSystemPrompt;
-
         // 构建用户提示词
         const finalUserMessage = buildUserPrompt(userMessage);
 
-        // 构建详细的 prompt 部分列表
+        // 构建详细的 prompt 部分列表（用于预览显示）
         const promptParts = [];
 
         // 添加破限词
@@ -118,7 +126,7 @@ export async function collectMemoryRequestInfo(category, data, userMessage, cont
         const mainPromptWithoutInjection =
             template.mainPrompt || template.main_prompt || "";
         const cleanMainPrompt = replacePromptVariables(
-            mainPromptWithoutInjection.split("<数据注入区>")[0].trim(),
+            mainPromptWithoutInjection.split("<数据注入点>")[0].trim(),
             aiConfig,
             globalConfig,
         );
@@ -156,8 +164,7 @@ export async function collectMemoryRequestInfo(category, data, userMessage, cont
             source: "user",
         });
 
-        // 根据流程配置对 promptParts 重新排序
-        // 使用 "记忆世界书" 作为流程类型（与流程配置弹窗中的分类名称一致）
+        // 根据流程配置对 promptParts 重新排序（使用与实际发送相同的顺序）
         const sortedPromptParts = sortPromptPartsByFlowConfig(promptParts, "记忆世界书");
 
         return {
@@ -210,23 +217,27 @@ export async function collectSummaryRequestInfo(book, userMessage, context) {
 
         // 使用历史事件回忆提示词模板
         const template = await getHistoricalPromptTemplate();
-        const prompt = injectDataToPrompt(template, dataInjection);
-        const baseSystemPrompt = replacePromptVariables(
+
+        // 获取破限词前缀
+        const jailbreakPrefix = getJailbreakPrefix();
+
+        // 使用与 processor.js 相同的方式构建提示词（包含流程配置顺序）
+        const prompt = injectDataToPrompt(template, dataInjection, {
+            flowType: "总结世界书",
+            jailbreakPrefix: jailbreakPrefix,
+        });
+
+        // 替换变量得到最终系统提示词
+        const finalSystemPrompt = replacePromptVariables(
             prompt.systemPrompt,
             aiConfig,
             globalConfig,
         );
 
-        // 添加破限词前缀
-        const jailbreakPrefix = getJailbreakPrefix();
-        const finalSystemPrompt = jailbreakPrefix
-            ? jailbreakPrefix + "\n\n" + baseSystemPrompt
-            : baseSystemPrompt;
-
         // 构建用户提示词
         const finalUserMessage = buildUserPrompt(userMessage);
 
-        // 构建详细的 prompt 部分列表
+        // 构建详细的 prompt 部分列表（用于预览显示）
         const promptParts = [];
 
         // 添加破限词
@@ -242,7 +253,7 @@ export async function collectSummaryRequestInfo(book, userMessage, context) {
         const mainPromptWithoutInjection =
             template.mainPrompt || template.main_prompt || "";
         const cleanMainPrompt = replacePromptVariables(
-            mainPromptWithoutInjection.split("<数据注入区>")[0].trim(),
+            mainPromptWithoutInjection.split("<数据注入点>")[0].trim(),
             aiConfig,
             globalConfig,
         );
@@ -280,8 +291,7 @@ export async function collectSummaryRequestInfo(book, userMessage, context) {
             source: "user",
         });
 
-        // 根据流程配置对 promptParts 重新排序
-        // 使用 "总结世界书" 作为流程类型（与流程配置弹窗中的分类名称一致）
+        // 根据流程配置对 promptParts 重新排序（使用与实际发送相同的顺序）
         const sortedPromptParts = sortPromptPartsByFlowConfig(promptParts, "总结世界书");
 
         return {
@@ -305,6 +315,142 @@ export async function collectSummaryRequestInfo(book, userMessage, context) {
     } catch (err) {
         Logger.error(
             `收集总结任务 "${book.name}" 请求信息失败:`,
+            err.message,
+        );
+        return null;
+    }
+}
+
+/**
+ * 收集单个总结世界书Part的请求信息
+ * @param {object} book 世界书对象
+ * @param {object} part Part信息 { id, index, startFloor, endFloor, content, charCount }
+ * @param {string} userMessage 用户消息
+ * @param {string} context 上下文
+ * @returns {Promise<object|null>} 请求信息
+ */
+export async function collectSummaryPartRequestInfo(book, part, userMessage, context) {
+    // Part 1（index=0）复用原总结世界书的 API 配置，其他 Part 使用各自的配置
+    let aiConfig;
+    if (part.index === 0) {
+        aiConfig = getSummaryConfig(book.name);
+    } else {
+        aiConfig = getSummaryPartApiConfig(book.name, part.id);
+    }
+
+    if (!aiConfig || !aiConfig.enabled) {
+        return null;
+    }
+
+    const globalConfig = getGlobalConfig();
+
+    try {
+        // Part 的内容带有标记
+        const partNumber = part.index + 1;
+        const partContent = `=== Part ${partNumber} (${part.startFloor}-${part.endFloor}楼) ===\n${part.content}`;
+
+        const dataInjection = buildDataInjection({
+            worldBookContent: partContent,
+            context: context,
+            userMessage: userMessage,
+        });
+
+        // 使用历史事件回忆提示词模板
+        const template = await getHistoricalPromptTemplate();
+
+        // 获取破限词前缀
+        const jailbreakPrefix = getJailbreakPrefix();
+
+        // 使用与 processor.js 相同的方式构建提示词
+        const prompt = injectDataToPrompt(template, dataInjection, {
+            flowType: "总结世界书",
+            jailbreakPrefix: jailbreakPrefix,
+        });
+
+        // 替换变量得到最终系统提示词
+        const finalSystemPrompt = replacePromptVariables(
+            prompt.systemPrompt,
+            aiConfig,
+            globalConfig,
+        );
+
+        // 构建用户提示词
+        const finalUserMessage = buildUserPrompt(userMessage);
+
+        // 构建详细的 prompt 部分列表
+        const promptParts = [];
+
+        if (jailbreakPrefix && jailbreakPrefix.trim()) {
+            promptParts.push({
+                label: "破限词",
+                content: jailbreakPrefix,
+                source: "jailbreak",
+            });
+        }
+
+        const mainPromptWithoutInjection = template.mainPrompt || template.main_prompt || "";
+        const cleanMainPrompt = replacePromptVariables(
+            mainPromptWithoutInjection.split("<数据注入点>")[0].trim(),
+            aiConfig,
+            globalConfig,
+        );
+        if (cleanMainPrompt) {
+            promptParts.push({
+                label: "主提示词",
+                content: cleanMainPrompt,
+                source: "main",
+            });
+        }
+
+        if (prompt.injectionParts && prompt.injectionParts.length > 0) {
+            promptParts.push(...prompt.injectionParts);
+        }
+
+        if (prompt.auxiliaryPrompt && prompt.auxiliaryPrompt.trim()) {
+            const processedAuxiliary = replacePromptVariables(
+                prompt.auxiliaryPrompt,
+                aiConfig,
+                globalConfig,
+            );
+            promptParts.push({
+                label: "辅助提示词",
+                content: processedAuxiliary,
+                source: "auxiliary",
+            });
+        }
+
+        promptParts.push({
+            label: SOURCE_LABELS.user || "用户消息",
+            content: finalUserMessage,
+            source: "user",
+        });
+
+        const sortedPromptParts = sortPromptPartsByFlowConfig(promptParts, "总结世界书");
+
+        return {
+            category: `${book.name} - Part ${partNumber} (${part.startFloor}-${part.endFloor}楼)`,
+            source: `${book.name}_part_${part.id}`,
+            model: aiConfig.model || "未指定模型",
+            promptParts: sortedPromptParts,
+            prompt: `${finalSystemPrompt}\n\n${finalUserMessage}`,
+            aiConfig: {
+                apiFormat: aiConfig.apiFormat,
+                apiUrl: aiConfig.apiUrl,
+                apiKey: aiConfig.apiKey,
+                model: aiConfig.model,
+                maxTokens: aiConfig.maxTokens,
+                temperature: aiConfig.temperature,
+                responsePath: aiConfig.responsePath,
+            },
+            taskType: "summary_part",
+            bookName: book.name,
+            partId: part.id,
+            startFloor: part.startFloor,
+            endFloor: part.endFloor,
+        };
+    } catch (err) {
+        Logger.error(
+            `收集总结任务 "${book.name}" Part ${part.index + 1} 请求信息失败:`,
             err.message,
         );
         return null;
@@ -337,23 +483,27 @@ export async function collectIndexMergeRequestInfo(
         });
 
         const template = await getPromptTemplate();
-        const prompt = injectDataToPrompt(template, dataInjection);
-        const baseSystemPrompt = replacePromptVariables(
+
+        // 获取破限词前缀
+        const jailbreakPrefix = getJailbreakPrefix();
+
+        // 使用与 processor.js 相同的方式构建提示词（包含流程配置顺序）
+        const prompt = injectDataToPrompt(template, dataInjection, {
+            flowType: "索引合并",
+            jailbreakPrefix: jailbreakPrefix,
+        });
+
+        // 替换变量得到最终系统提示词
+        const finalSystemPrompt = replacePromptVariables(
             prompt.systemPrompt,
             indexMergeConfig,
             globalConfig,
         );
 
-        // 添加破限词前缀
-        const jailbreakPrefix = getJailbreakPrefix();
-        const finalSystemPrompt = jailbreakPrefix
-            ? jailbreakPrefix + "\n\n" + baseSystemPrompt
-            : baseSystemPrompt;
-
         // 构建用户提示词
         const finalUserMessage = buildUserPrompt(userMessage);
 
-        // 构建详细的 prompt 部分列表
+        // 构建详细的 prompt 部分列表（用于预览显示）
         const promptParts = [];
 
         // 添加破限词
@@ -369,7 +519,7 @@ export async function collectIndexMergeRequestInfo(
         const mainPromptWithoutInjection =
             template.mainPrompt || template.main_prompt || "";
         const cleanMainPrompt = replacePromptVariables(
-            mainPromptWithoutInjection.split("<数据注入区>")[0].trim(),
+            mainPromptWithoutInjection.split("<数据注入点>")[0].trim(),
             indexMergeConfig,
             globalConfig,
         );
@@ -496,6 +646,30 @@ export async function collectAllRequestInfos(
             continue;
         }
 
+        // 检查是否启用拆分
+        if (isSummaryAutoSplitEnabled()) {
+            const summaryContent = getSummaryContent(book);
+            const splitConfig = getSummaryAutoSplitConfig();
+            const parts = analyzeSummaryContent(summaryContent, splitConfig);
+
+            if (parts.length > 1) {
+                // 拆分模式：为每个Part收集请求信息
+                for (const part of parts) {
+                    const partInfo = await collectSummaryPartRequestInfo(
+                        book,
+                        part,
+                        userMessage,
+                        context,
+                    );
+                    if (partInfo) {
+                        requestInfos.push(partInfo);
+                    }
+                }
+                continue; // 跳过整本书的收集
+            }
+        }
+
+        // 未启用拆分或内容不足以拆分：收集整本书的请求信息
         const summaryInfo = await collectSummaryRequestInfo(
             book,
             userMessage,

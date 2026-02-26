@@ -11,6 +11,11 @@ import {
     getSummaryConfig,
     isPluginEnabled,
     getEnabledProviders,
+    getSummaryAutoSplitConfig,
+    getSummaryPartConfigs,
+    getSummaryPartApiConfig,
+    isSummaryAutoSplitEnabled,
+    isSummaryMergeDeduplicateEnabled,
 } from "@config/config-manager";
 import Logger from "@core/logger";
 import { getContext } from "@core/sillytavern-api";
@@ -31,6 +36,7 @@ import {
 import { classifyWorldBooks, getImportedWorldBooks } from "@worldbook/api";
 import { formatAsWorldBook, getSummaryContent } from "@worldbook/parser";
 import { refreshWorldBookList } from "@worldbook/refresh";
+import { analyzeSummaryContent } from "@worldbook/summary-splitter";
 import { getJailbreakPrefix } from "./jailbreak";
 import {
     buildDataInjection,
@@ -40,6 +46,7 @@ import {
 } from "./prompt-builder";
 import { mergeResults } from "./result-merger";
 import { collectAllRequestInfos } from "./request-collector";
+import { showPartDebugModal, isPartDebugEnabled } from "./part-debug-modal";
 
 // 创建模块专用日志记录器
 const log = Logger.createModuleLogger("记忆处理");
@@ -205,18 +212,22 @@ export async function processCategory(
 
         // 获取提示词模板
         const template = await getPromptTemplate();
-        const prompt = injectDataToPrompt(template, dataInjection);
+
+        // 获取破限词前缀
+        const jailbreakPrefix = getJailbreakPrefix();
+
+        // 注入数据到提示词（使用流程配置顺序）
+        const prompt = injectDataToPrompt(template, dataInjection, {
+            flowType: "记忆世界书",
+            jailbreakPrefix: jailbreakPrefix,
+        });
 
         // 替换变量
-        const baseSystemPrompt = replacePromptVariables(
+        const finalSystemPrompt = replacePromptVariables(
             prompt.systemPrompt,
             aiConfig,
             globalConfig,
         );
-
-        // 添加破限词前缀
-        const finalSystemPrompt =
-            getJailbreakPrefix() + "\n\n" + baseSystemPrompt;
 
         // 构建用户提示词
         const finalUserMessage = buildUserPrompt(userMessage);
@@ -281,18 +292,22 @@ export async function processSummaryBook(book, userMessage, context, signal) {
 
         // 使用历史事件回忆提示词模板
         const template = await getHistoricalPromptTemplate();
-        const prompt = injectDataToPrompt(template, dataInjection);
+
+        // 获取破限词前缀
+        const jailbreakPrefix = getJailbreakPrefix();
+
+        // 注入数据到提示词（使用流程配置顺序）
+        const prompt = injectDataToPrompt(template, dataInjection, {
+            flowType: "总结世界书",
+            jailbreakPrefix: jailbreakPrefix,
+        });
 
         // 替换变量
-        const baseSystemPrompt = replacePromptVariables(
+        const finalSystemPrompt = replacePromptVariables(
             prompt.systemPrompt,
             aiConfig,
             globalConfig,
         );
-
-        // 添加破限词前缀
-        const finalSystemPrompt =
-            getJailbreakPrefix() + "\n\n" + baseSystemPrompt;
 
         // 构建用户提示词
         const finalUserMessage = buildUserPrompt(userMessage);
@@ -323,6 +338,325 @@ export async function processSummaryBook(book, userMessage, context, signal) {
         progressTracker?.completeTask(taskId, false, error.message);
         return null;
     }
+}
+
+/**
+ * 处理单个总结世界书的 Part
+ * @param {object} book 世界书对象
+ * @param {object} part Part 信息 { id, startFloor, endFloor, content, charCount }
+ * @param {string} userMessage 用户消息
+ * @param {string} context 上下文
+ * @param {AbortSignal} signal 中止信号
+ * @returns {Promise<object|null>} 处理结果
+ */
+export async function processSummaryPart(book, part, userMessage, context, signal) {
+    const progressTracker = getProgressTracker();
+    const taskId = `summary_${book.name}_${part.id}`;
+
+    try {
+        progressTracker?.startTask(taskId);
+
+        // Part 1（index=0）复用原总结世界书的 API 配置，其他 Part 使用各自的配置
+        let partConfig;
+        if (part.index === 0) {
+            partConfig = getSummaryConfig(book.name);
+        } else {
+            partConfig = getSummaryPartApiConfig(book.name, part.id);
+        }
+
+        if (!partConfig || !partConfig.enabled) {
+            log.warn(`总结世界书 "${book.name}" Part "${part.id}" 未启用，跳过`);
+            progressTracker?.completeTask(taskId, false, "未配置");
+            return null;
+        }
+
+        const globalConfig = getGlobalConfig();
+
+        // Part 的内容带有标识
+        const partContent = `=== Part ${part.id} (${part.startFloor}-${part.endFloor}楼) ===\n${part.content}`;
+
+        // 构建数据注入
+        const dataInjection = buildDataInjection({
+            worldBookContent: partContent,
+            context: context,
+            userMessage: userMessage,
+        });
+
+        // 使用历史事件回忆提示词模板
+        const template = await getHistoricalPromptTemplate();
+
+        // 获取破限词前缀
+        const jailbreakPrefix = getJailbreakPrefix();
+
+        // 注入数据到提示词（使用流程配置顺序，与总结世界书使用相同流程）
+        const prompt = injectDataToPrompt(template, dataInjection, {
+            flowType: "总结世界书",
+            jailbreakPrefix: jailbreakPrefix,
+        });
+
+        // 替换变量
+        const finalSystemPrompt = replacePromptVariables(
+            prompt.systemPrompt,
+            partConfig,
+            globalConfig,
+        );
+
+        // 构建用户提示词
+        const finalUserMessage = buildUserPrompt(userMessage);
+
+        // 调用 API（添加 taskId 以支持流式进度更新）
+        const response = await APIAdapter.call(
+            { ...partConfig, taskId },
+            finalSystemPrompt,
+            finalUserMessage,
+            signal,
+        );
+
+        progressTracker?.completeTask(taskId, true);
+
+        return {
+            source: `${book.name} (${part.startFloor}-${part.endFloor}楼)`,
+            category: book.name,
+            type: "summary_part",
+            rawMemory: response,
+            bookName: book.name,
+            partId: part.id,
+            startFloor: part.startFloor,
+            endFloor: part.endFloor,
+        };
+    } catch (error) {
+        if (error.name === "AbortError") {
+            progressTracker?.completeTask(taskId, false, "已取消");
+            throw error;
+        }
+        log.error(`处理总结世界书 "${book.name}" Part "${part.id}" 失败:`, error);
+        progressTracker?.completeTask(taskId, false, error.message);
+        return null;
+    }
+}
+
+/**
+ * 合并多个 Part 的处理结果
+ * @param {Array} partResults Part 处理结果数组
+ * @param {string} bookName 世界书名称
+ * @returns {object|null} 合并后的结果
+ */
+export function mergePartResults(partResults, bookName) {
+    // 计算合并结果
+    const mergedResult = computeMergedResult(partResults, bookName);
+
+    // 显示调试弹窗（在返回结果前）
+    if (isPartDebugEnabled()) {
+        showPartDebugModal(partResults, bookName, mergedResult);
+    }
+
+    return mergedResult;
+}
+
+/**
+ * 计算合并结果（内部函数）
+ * @param {Array} partResults Part 处理结果数组
+ * @param {string} bookName 世界书名称
+ * @returns {object|null} 合并后的结果
+ */
+function computeMergedResult(partResults, bookName) {
+    const validResults = partResults.filter(r => r !== null && r.rawMemory);
+
+    if (validResults.length === 0) {
+        return null;
+    }
+
+    // 获取去重配置
+    const deduplicateEnabled = isSummaryMergeDeduplicateEnabled();
+
+    // 提取所有历史事件（保持原始顺序，不排序）
+    const allEvents = [];
+    const eventPattern = /<Historical_Occurrences>([\s\S]*?)<\/Historical_Occurrences>/gi;
+    // 兼容多种楼层格式：【124楼】、【124至#125】、【124至125楼】
+    const floorPattern = /【(\d+)(?:楼】|至#?(\d+)楼?】)/;
+
+    for (const result of validResults) {
+        const content = result.rawMemory;
+        let match;
+        let foundEvents = false;
+
+        // 提取所有 Historical_Occurrences 块
+        while ((match = eventPattern.exec(content)) !== null) {
+            foundEvents = true;
+            const eventsContent = match[1];
+            // 按行分割并提取每个事件
+            const lines = eventsContent.split('\n').filter(line => line.trim());
+
+            for (const line of lines) {
+                const floorMatch = line.match(floorPattern);
+                const floor = floorMatch ? parseInt(floorMatch[1], 10) : 0;
+                allEvents.push({
+                    floor: floor,
+                    content: line.trim(),
+                    sourcePartId: result.partId,
+                });
+            }
+        }
+
+        // 重置正则的 lastIndex
+        eventPattern.lastIndex = 0;
+
+        // 如果没有找到标签格式，尝试直接提取楼层事件
+        if (!foundEvents) {
+            const lines = content.split('\n').filter(line => line.trim());
+            for (const line of lines) {
+                const floorMatch = line.match(floorPattern);
+                if (floorMatch) {
+                    const floor = parseInt(floorMatch[1], 10);
+                    allEvents.push({
+                        floor: floor,
+                        content: line.trim(),
+                        sourcePartId: result.partId,
+                    });
+                }
+            }
+        }
+    }
+
+    // 处理事件列表
+    let finalEvents;
+    if (deduplicateEnabled) {
+        // 去重模式：同一楼层只保留内容最长的
+        const floorBestEvent = new Map();
+        for (const event of allEvents) {
+            const existing = floorBestEvent.get(event.floor);
+            if (!existing || event.content.length > existing.content.length) {
+                floorBestEvent.set(event.floor, event);
+            }
+        }
+        // 按原始出现顺序输出（使用第一次出现的顺序）
+        const seenFloors = new Set();
+        finalEvents = [];
+        for (const event of allEvents) {
+            if (!seenFloors.has(event.floor)) {
+                seenFloors.add(event.floor);
+                finalEvents.push(floorBestEvent.get(event.floor));
+            }
+        }
+    } else {
+        // 不去重模式：相同楼层的内容放在一起（保持原始顺序）
+        // 使用 Map 按楼层分组，保持首次出现的顺序
+        const floorGroups = new Map();
+        const floorOrder = [];
+
+        for (const event of allEvents) {
+            if (!floorGroups.has(event.floor)) {
+                floorGroups.set(event.floor, []);
+                floorOrder.push(event.floor);
+            }
+            floorGroups.get(event.floor).push(event);
+        }
+
+        // 按首次出现顺序输出
+        finalEvents = [];
+        for (const floor of floorOrder) {
+            finalEvents.push(...floorGroups.get(floor));
+        }
+    }
+
+    // 重新构建响应
+    const mergedContent = finalEvents.map(e => e.content).join('\n');
+    const rawMemory = finalEvents.length > 0
+        ? `<Historical_Occurrences>\n${mergedContent}\n</Historical_Occurrences>`
+        : validResults.map(r => r.rawMemory).join('\n\n');
+
+    const mergedResult = {
+        source: bookName,
+        category: bookName,
+        type: "summary",
+        rawMemory: rawMemory,
+        bookName: bookName,
+        partCount: validResults.length,
+        eventCount: finalEvents.length,
+    };
+
+    return mergedResult;
+}
+
+/**
+ * 处理总结世界书（支持自动拆分）
+ * @param {object} book 世界书对象
+ * @param {string} userMessage 用户消息
+ * @param {string} context 上下文
+ * @param {AbortSignal} signal 中止信号
+ * @returns {Promise<object|null>} 处理结果
+ */
+export async function processSummaryBookWithSplit(book, userMessage, context, signal) {
+    // 检查是否启用拆分
+    if (!isSummaryAutoSplitEnabled()) {
+        // 未启用拆分，使用原有逻辑
+        return processSummaryBook(book, userMessage, context, signal);
+    }
+
+    // 获取总结内容
+    const summaryContent = getSummaryContent(book);
+
+    // 获取拆分配置
+    const splitConfig = getSummaryAutoSplitConfig();
+
+    // 分析拆分方案
+    const parts = analyzeSummaryContent(summaryContent, splitConfig);
+
+    if (parts.length <= 1) {
+        // 内容不足以拆分，使用原有逻辑
+        log.debug(`总结世界书 "${book.name}" 内容字符数不足以拆分，使用单任务处理`);
+        return processSummaryBook(book, userMessage, context, signal);
+    }
+
+    log.log(`总结世界书 "${book.name}" 拆分为 ${parts.length} 个 Part 进行并发处理`);
+
+    // 检查每个 Part 是否都有 API 配置（Part 1 复用原配置）
+    const partConfigs = getSummaryPartConfigs(book.name);
+    const originalConfig = getSummaryConfig(book.name);
+    const unconfiguredParts = [];
+
+    for (const part of parts) {
+        if (part.index === 0) {
+            // Part 1（index=0）复用原总结世界书配置
+            if (!originalConfig || !originalConfig.enabled) {
+                unconfiguredParts.push(part);
+            }
+        } else {
+            // 其他 Part 使用各自的配置
+            const partConfig = partConfigs?.parts?.find(p => p.id === part.id);
+            if (!partConfig || !partConfig.apiConfig || !partConfig.apiConfig.enabled) {
+                unconfiguredParts.push(part);
+            }
+        }
+    }
+
+    if (unconfiguredParts.length > 0) {
+        const partNames = unconfiguredParts.map(p => `Part ${p.id} (${p.startFloor}-${p.endFloor}楼)`).join(', ');
+        log.warn(`总结世界书 "${book.name}" 有 ${unconfiguredParts.length} 个 Part 未配置 API: ${partNames}`);
+        // 即使有未配置的 Part，仍然处理已配置的 Part
+    }
+
+    // 并发处理所有已配置的 Part
+    const partPromises = parts.map(part => {
+        if (part.index === 0) {
+            // Part 1（index=0）复用原配置
+            if (!originalConfig || !originalConfig.enabled) {
+                return Promise.resolve(null);
+            }
+        } else {
+            // 其他 Part 使用各自的配置
+            const partConfig = partConfigs?.parts?.find(p => p.id === part.id);
+            if (!partConfig || !partConfig.apiConfig || !partConfig.apiConfig.enabled) {
+                return Promise.resolve(null);
+            }
+        }
+        return processSummaryPart(book, part, userMessage, context, signal);
+    });
+
+    const partResults = await Promise.all(partPromises);
+
+    // 合并结果
+    return mergePartResults(partResults, book.name);
 }
 
 /**
@@ -394,18 +728,22 @@ export async function processIndexMerge(
 
         // 获取提示词模板
         const template = await getPromptTemplate();
-        const prompt = injectDataToPrompt(template, dataInjection);
+
+        // 获取破限词前缀
+        const jailbreakPrefix = getJailbreakPrefix();
+
+        // 注入数据到提示词（使用流程配置顺序）
+        const prompt = injectDataToPrompt(template, dataInjection, {
+            flowType: "索引合并",
+            jailbreakPrefix: jailbreakPrefix,
+        });
 
         // 替换变量
-        const baseSystemPrompt = replacePromptVariables(
+        const finalSystemPrompt = replacePromptVariables(
             prompt.systemPrompt,
             config,
             globalConfig,
         );
-
-        // 添加破限词前缀
-        const finalSystemPrompt =
-            getJailbreakPrefix() + "\n\n" + baseSystemPrompt;
 
         // 构建用户提示词
         const finalUserMessage = buildUserPrompt(userMessage);
@@ -751,26 +1089,88 @@ export async function processMemoryForMessage(userMessage) {
                     continue;
                 }
 
-                const taskId = `summary_${book.name}`;
-                const taskController = new AbortController();
-                taskAbortControllers.set(taskId, taskController);
+                // 检查是否启用拆分，并分析是否需要拆分
+                const splitEnabled = isSummaryAutoSplitEnabled();
+                let parts = [];
+                if (splitEnabled) {
+                    const summaryContent = getSummaryContent(book);
+                    const splitConfig = getSummaryAutoSplitConfig();
+                    parts = analyzeSummaryContent(summaryContent, splitConfig);
+                }
 
-                taskInfoList.push({
-                    id: taskId,
-                    name: book.name,
-                    type: "summary",
-                });
+                if (splitEnabled && parts.length > 1) {
+                    // 启用拆分且有多个Part：注册Part任务用于进度追踪
+                    const partConfigs = getSummaryPartConfigs(book.name);
+                    const originalConfig = getSummaryConfig(book.name);
 
-                tasks.push({
-                    taskId,
-                    fn: () =>
-                        processSummaryBook(
-                            book,
-                            userMessage,
-                            context,
-                            taskController.signal,
-                        ),
-                });
+                    // 收集已配置的Part用于进度追踪显示
+                    const configuredParts = [];
+                    for (const part of parts) {
+                        let isConfigured = false;
+                        if (part.index === 0) {
+                            isConfigured = originalConfig && originalConfig.enabled;
+                        } else {
+                            const partConfig = partConfigs?.parts?.find(p => p.id === part.id);
+                            isConfigured = partConfig && partConfig.apiConfig && partConfig.apiConfig.enabled;
+                        }
+                        if (isConfigured) {
+                            configuredParts.push(part);
+                        }
+                    }
+
+                    if (configuredParts.length === 0) {
+                        log.warn(`总结世界书 "${book.name}" 所有 Part 均未配置，跳过`);
+                        continue;
+                    }
+
+                    // 为每个已配置的Part注册任务信息（用于进度追踪显示）
+                    for (const part of configuredParts) {
+                        const taskId = `summary_${book.name}_${part.id}`;
+                        taskInfoList.push({
+                            id: taskId,
+                            name: `${book.name} Part ${part.index + 1}`,
+                            type: "summary_part",
+                        });
+                    }
+
+                    // 使用单个任务执行 processSummaryBookWithSplit（内部会并发处理Part并合并结果）
+                    const mainTaskId = `summary_${book.name}`;
+                    const taskController = new AbortController();
+                    taskAbortControllers.set(mainTaskId, taskController);
+
+                    tasks.push({
+                        taskId: mainTaskId,
+                        fn: () =>
+                            processSummaryBookWithSplit(
+                                book,
+                                userMessage,
+                                context,
+                                taskController.signal,
+                            ),
+                    });
+                } else {
+                    // 未启用拆分或内容不足以拆分：注册单个任务
+                    const taskId = `summary_${book.name}`;
+                    const taskController = new AbortController();
+                    taskAbortControllers.set(taskId, taskController);
+
+                    taskInfoList.push({
+                        id: taskId,
+                        name: book.name,
+                        type: "summary",
+                    });
+
+                    tasks.push({
+                        taskId,
+                        fn: () =>
+                            processSummaryBook(
+                                book,
+                                userMessage,
+                                context,
+                                taskController.signal,
+                            ),
+                    });
+                }
             } catch (e) {
                 log.warn(`总结世界书 "${book.name}" 未配置，跳过`);
             }
@@ -930,7 +1330,9 @@ export async function processMemoryForMessage(userMessage) {
                 for (const m of selectedMemories) {
                     const floor = m.uid || "0";
                     const content = m.content || "";
-                    historicalLines.push(`【${floor}楼】${content}`);
+                    // 如果 floor 已经是完整标签格式，直接使用
+                    const floorTag = String(floor).startsWith('【') ? floor : `【${floor}楼】`;
+                    historicalLines.push(`${floorTag}${content}`);
                 }
 
                 const rawMemory = `<Historical_Occurrences>\n${historicalLines.join(

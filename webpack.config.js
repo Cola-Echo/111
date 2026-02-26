@@ -57,6 +57,7 @@ module.exports = (env, argv) => {
                 '@hooks': path.resolve(__dirname, 'src/hooks'),
                 '@ui': path.resolve(__dirname, 'src/ui'),
                 '@utils': path.resolve(__dirname, 'src/utils'),
+                '@table-filler': path.resolve(__dirname, 'src/table-filler'),
             }
         },
     };

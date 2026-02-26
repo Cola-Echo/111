@@ -4,6 +4,7 @@
  */
 
 import { getGlobalSettings, isMultiAIAvailable } from '@config/config-manager';
+import { enableModalDrag } from './index';
 
 /**
  * 显示汇总检查弹窗
@@ -40,7 +41,6 @@ export function showSummaryCheckModal(summaryContent, editorContent = "") {
         content.className = "mm-modal-content mm-modal-large";
         content.style.width = "100%";
         content.style.maxWidth = "800px";
-        content.style.height = "80vh";
         content.style.maxHeight = "80vh";
         content.style.overflow = "hidden";
         content.style.display = "flex";
@@ -76,12 +76,17 @@ export function showSummaryCheckModal(summaryContent, editorContent = "") {
         header.appendChild(closeBtn);
         content.appendChild(header);
 
+        // 启用弹窗拖拽移动
+        enableModalDrag(modal, content, header);
+
         // 创建弹窗主体
         const body = document.createElement("div");
         body.className = "mm-modal-body";
         body.style.flex = "1";
         body.style.overflowY = "auto";
         body.style.padding = "20px";
+        body.style.display = "flex";
+        body.style.flexDirection = "column";
 
         // 提示信息
         const hint = document.createElement("div");
@@ -126,7 +131,6 @@ export function showSummaryCheckModal(summaryContent, editorContent = "") {
         summaryText.style.color = "var(--mm-text)";
         summaryText.style.height = editorContent ? "200px" : "300px";
         summaryText.style.minHeight = "100px";
-        summaryText.style.maxHeight = "none";
         summaryText.style.overflowY = "auto";
         summaryText.style.padding = "10px";
         summaryText.style.background = "var(--mm-bg-secondary)";
@@ -146,30 +150,39 @@ export function showSummaryCheckModal(summaryContent, editorContent = "") {
         let isResizing = false;
         let startY = 0;
         let startHeight = 0;
+        const maxScreenHeight = window.innerHeight * 0.8; // 最大高度为屏幕的80%
 
-        resizeHandle.addEventListener("mousedown", (e) => {
+        const onResizeMouseDown = (e) => {
             isResizing = true;
-            startY = e.clientY;
+            startY = e.clientY || e.touches?.[0]?.clientY || 0;
             startHeight = summaryText.offsetHeight;
             document.body.style.cursor = "ns-resize";
             document.body.style.userSelect = "none";
             e.preventDefault();
-        });
+        };
 
-        document.addEventListener("mousemove", (e) => {
+        const onResizeMouseMove = (e) => {
             if (!isResizing) return;
-            const deltaY = e.clientY - startY;
-            const newHeight = Math.max(100, startHeight + deltaY);
+            const clientY = e.clientY || e.touches?.[0]?.clientY || 0;
+            const deltaY = clientY - startY;
+            const newHeight = Math.max(100, Math.min(maxScreenHeight, startHeight + deltaY));
             summaryText.style.height = newHeight + "px";
-        });
+        };
 
-        document.addEventListener("mouseup", () => {
+        const onResizeMouseUp = () => {
             if (isResizing) {
                 isResizing = false;
                 document.body.style.cursor = "";
                 document.body.style.userSelect = "";
             }
-        });
+        };
+
+        resizeHandle.addEventListener("mousedown", onResizeMouseDown);
+        document.addEventListener("mousemove", onResizeMouseMove);
+        document.addEventListener("mouseup", onResizeMouseUp);
+        resizeHandle.addEventListener("touchstart", onResizeMouseDown, { passive: false });
+        document.addEventListener("touchmove", onResizeMouseMove, { passive: false });
+        document.addEventListener("touchend", onResizeMouseUp);
 
         summaryContainer.appendChild(resizableContainer);
 

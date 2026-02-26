@@ -109,7 +109,8 @@ export function mergeResults(results, latestContext = "") {
                 ) {
                     events.split("\n").forEach((line) => {
                         const trimmed = line.trim();
-                        if (trimmed && /^【\d+楼】/.test(trimmed)) {
+                        // 兼容多种楼层格式：【124楼】、【124至#125】、【124至125楼】
+                        if (trimmed && /^【\d+(?:楼】|至#?\d+楼?】)/.test(trimmed)) {
                             historicalEvents.add(trimmed);
                         }
                     });

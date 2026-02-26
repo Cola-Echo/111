@@ -190,9 +190,12 @@ export function clearOldData(maxAgeMs = OLD_DATA_MAX_AGE_MS) {
     const preserved = {
         memoryConfigs: structuredClone(config?.memoryConfigs || {}),
         summaryConfigs: structuredClone(config?.summaryConfigs || {}),
+        summaryPartConfigs: structuredClone(config?.summaryPartConfigs || {}),
+        summaryAutoSplit: structuredClone(config?.global?.summaryAutoSplit || {}),
         indexMergeConfig: structuredClone(config?.global?.indexMergeConfig || {}),
         plotOptimizeConfig: structuredClone(config?.global?.plotOptimizeConfig || {}),
         providers: structuredClone(config?.global?.multiAIGeneration?.providers || []),
+        tableFillerConfig: structuredClone(config?.global?.tableFillerConfig || {}),
     };
 
     // 保留完整的 API 配置字段（包括 enabled 等）
@@ -244,9 +247,51 @@ export function clearOldData(maxAgeMs = OLD_DATA_MAX_AGE_MS) {
     const newConfig = structuredClone(defaultConfig);
     newConfig.memoryConfigs = preserved.memoryConfigs;
     newConfig.summaryConfigs = preserved.summaryConfigs;
+    newConfig.summaryPartConfigs = preserved.summaryPartConfigs;
+    newConfig.global.summaryAutoSplit = preserved.summaryAutoSplit;
     newConfig.global.indexMergeConfig = pickApiFields(preserved.indexMergeConfig, newConfig.global.indexMergeConfig);
     newConfig.global.plotOptimizeConfig = pickApiFields(preserved.plotOptimizeConfig, newConfig.global.plotOptimizeConfig);
     newConfig.global.multiAIGeneration.providers = sanitizedProviders;
+
+    // 恢复表格填表并发配置（保留 API 配置）
+    if (preserved.tableFillerConfig) {
+        const tableFillerApiFields = ["apiFormat", "apiUrl", "apiKey", "model", "maxTokens", "temperature", "customTemplate", "responsePath"];
+        const sanitizedTableFillerConfig = {
+            enabled: preserved.tableFillerConfig.enabled ?? false,
+            callMode: preserved.tableFillerConfig.callMode ?? "auto",
+            promptMode: "shared", // 提示词模式重置为共享（清除预设关联）
+            retryCount: preserved.tableFillerConfig.retryCount ?? 2,
+            retryDelay: preserved.tableFillerConfig.retryDelay ?? 2000,
+            importedPreset: null, // 清除导入的预设
+            defaultApi: {},
+            tableApiConfigs: {},
+        };
+        // 保留默认 API 配置
+        if (preserved.tableFillerConfig.defaultApi) {
+            for (const f of tableFillerApiFields) {
+                if (Object.hasOwn(preserved.tableFillerConfig.defaultApi, f)) {
+                    sanitizedTableFillerConfig.defaultApi[f] = preserved.tableFillerConfig.defaultApi[f];
+                }
+            }
+        }
+        // 保留各表格独立 API 配置
+        if (preserved.tableFillerConfig.tableApiConfigs) {
+            for (const [tableName, tableConfig] of Object.entries(preserved.tableFillerConfig.tableApiConfigs)) {
+                sanitizedTableFillerConfig.tableApiConfigs[tableName] = {};
+                for (const f of tableFillerApiFields) {
+                    if (Object.hasOwn(tableConfig, f)) {
+                        sanitizedTableFillerConfig.tableApiConfigs[tableName][f] = tableConfig[f];
+                    }
+                }
+                // 保留 useDefault 标记
+                if (Object.hasOwn(tableConfig, "useDefault")) {
+                    sanitizedTableFillerConfig.tableApiConfigs[tableName].useDefault = tableConfig.useDefault;
+                }
+            }
+        }
+        newConfig.global.tableFillerConfig = sanitizedTableFillerConfig;
+    }
+
     saveConfig(newConfig);
 
     // localStorage 旧数据清理（无时间戳的也视为旧）
@@ -574,3 +619,569 @@ export function setMultiAIEnabled(enabled) {
     multiAI.enabled = enabled;
     saveMultiAIConfig(multiAI);
 }
+
+// ============================================================================
+// 表格填表并发配置管理
+// ============================================================================
+
+/**
+ * 获取表格填表配置
+ * @returns {object} 表格填表配置对象
+ */
+export function getTableFillerConfig() {
+    const config = loadConfig();
+    const tableFillerConfig = config?.global?.tableFillerConfig;
+    if (!tableFillerConfig) {
+        return {
+            enabled: false,
+            callMode: "auto",
+            promptMode: "shared",
+            retryCount: 2,
+            retryDelay: 2000,
+            importedPreset: null,
+            defaultApi: {},
+            tableApiConfigs: {},
+            independentTemplates: {},
+            independentTagName: "Instructions for filling out the form",
+        };
+    }
+    // 确保 retryCount 有默认值
+    if (tableFillerConfig.retryCount === undefined) {
+        tableFillerConfig.retryCount = 2;
+    }
+    // 确保 retryDelay 有默认值
+    if (tableFillerConfig.retryDelay === undefined) {
+        tableFillerConfig.retryDelay = 2000;
+    }
+    // 确保 independentTemplates 有默认值
+    if (!tableFillerConfig.independentTemplates) {
+        tableFillerConfig.independentTemplates = {};
+    }
+    // 确保 independentTagName 有默认值
+    if (!tableFillerConfig.independentTagName) {
+        tableFillerConfig.independentTagName = "Instructions for filling out the form";
+    }
+    return tableFillerConfig;
+}
+
+/**
+ * 检查表格填表功能是否启用
+ * @returns {boolean}
+ */
+export function isTableFillerEnabled() {
+    const tableFillerConfig = getTableFillerConfig();
+    return tableFillerConfig?.enabled === true;
+}
+
+/**
+ * 检查调试模式是否启用
+ * @returns {boolean}
+ */
+export function isDebugModeEnabled() {
+    const tableFillerConfig = getTableFillerConfig();
+    return tableFillerConfig?.debugMode === true;
+}
+
+/**
+ * 保存表格填表配置
+ * @param {object} tableFillerConfig 表格填表配置
+ */
+export function saveTableFillerConfig(tableFillerConfig) {
+    const config = loadConfig();
+    if (!config.global) config.global = {};
+    config.global.tableFillerConfig = tableFillerConfig;
+    saveConfig(config);
+}
+
+/**
+ * 更新表格填表配置的部分字段
+ * @param {object} updates 要更新的字段
+ */
+export function updateTableFillerConfig(updates) {
+    const tableFillerConfig = getTableFillerConfig();
+    const newConfig = { ...tableFillerConfig, ...updates };
+    saveTableFillerConfig(newConfig);
+}
+
+/**
+ * 设置表格填表功能启用状态
+ * @param {boolean} enabled 是否启用
+ */
+export function setTableFillerEnabled(enabled) {
+    updateTableFillerConfig({ enabled });
+}
+
+/**
+ * 获取表格的 API 配置
+ * @param {string} tableName 表格名称
+ * @returns {object} API 配置
+ */
+export function getTableApiConfig(tableName) {
+    const tableFillerConfig = getTableFillerConfig();
+    const tableConfig = tableFillerConfig.tableApiConfigs?.[tableName];
+
+    // 如果表格有独立配置且不是使用默认
+    if (tableConfig && !tableConfig.useDefault) {
+        return tableConfig;
+    }
+
+    // 使用默认 API 配置
+    return tableFillerConfig.defaultApi || {};
+}
+
+/**
+ * 设置表格的 API 配置
+ * @param {string} tableName 表格名称
+ * @param {object} apiConfig API 配置
+ */
+export function setTableApiConfig(tableName, apiConfig) {
+    const tableFillerConfig = getTableFillerConfig();
+    if (!tableFillerConfig.tableApiConfigs) {
+        tableFillerConfig.tableApiConfigs = {};
+    }
+    tableFillerConfig.tableApiConfigs[tableName] = apiConfig;
+    saveTableFillerConfig(tableFillerConfig);
+}
+
+/**
+ * 删除表格的独立 API 配置（恢复使用默认）
+ * @param {string} tableName 表格名称
+ */
+export function deleteTableApiConfig(tableName) {
+    const tableFillerConfig = getTableFillerConfig();
+    if (tableFillerConfig.tableApiConfigs?.[tableName]) {
+        delete tableFillerConfig.tableApiConfigs[tableName];
+        saveTableFillerConfig(tableFillerConfig);
+    }
+}
+
+/**
+ * 检查表格填表配置是否有效
+ * @returns {boolean}
+ */
+export function hasValidTableFillerConfig() {
+    const config = getTableFillerConfig();
+    // 必须有默认 API 配置
+    if (!config.defaultApi?.apiUrl || !config.defaultApi?.model) {
+        return false;
+    }
+    return true;
+}
+
+/**
+ * 获取表格的独立模板
+ * @param {string} tableName 表格名称
+ * @returns {object|null} 模板配置
+ */
+export function getIndependentTemplate(tableName) {
+    const tableFillerConfig = getTableFillerConfig();
+    return tableFillerConfig.independentTemplates?.[tableName] || null;
+}
+
+/**
+ * 默认独立模板缓存
+ */
+let defaultIndependentTemplatesCache = null;
+
+/**
+ * 加载内置默认独立模板
+ * @returns {Promise<object|null>} 默认模板对象
+ */
+export async function loadDefaultIndependentTemplates() {
+    // 如果已缓存，直接返回
+    if (defaultIndependentTemplatesCache) {
+        return defaultIndependentTemplatesCache;
+    }
+
+    try {
+        const response = await fetch('/scripts/extensions/third-party/memory-manager-concurrent/prompts/table-filler/default-independent-template.json');
+        if (!response.ok) {
+            Logger.warn('[独立模板] 加载内置默认模板失败:', response.status);
+            return null;
+        }
+        const data = await response.json();
+        defaultIndependentTemplatesCache = data;
+        Logger.log('[独立模板] 已加载内置默认模板');
+        return data;
+    } catch (e) {
+        Logger.error('[独立模板] 加载内置默认模板出错:', e);
+        return null;
+    }
+}
+
+/**
+ * 获取表格的独立模板（带默认值回退）
+ * 优先从持久化配置加载，若没有则从内置默认模板加载
+ * @param {string} tableName 表格名称
+ * @returns {Promise<object|null>} 模板配置
+ */
+export async function getIndependentTemplateWithDefault(tableName) {
+    // 1. 先从持久化配置加载
+    const savedTemplate = getIndependentTemplate(tableName);
+    if (savedTemplate) {
+        return savedTemplate;
+    }
+
+    // 2. 从内置默认模板加载
+    const defaultTemplates = await loadDefaultIndependentTemplates();
+    if (defaultTemplates?.templates?.[tableName]) {
+        return { template: defaultTemplates.templates[tableName] };
+    }
+
+    return null;
+}
+
+/**
+ * 获取所有独立模板（合并持久化和默认模板）
+ * @returns {Promise<object>} 合并后的所有模板
+ */
+export async function getAllIndependentTemplatesWithDefault() {
+    const savedTemplates = getAllIndependentTemplates();
+    const defaultTemplates = await loadDefaultIndependentTemplates();
+
+    // 合并：持久化优先
+    const merged = { ...savedTemplates };
+
+    if (defaultTemplates?.templates) {
+        for (const [tableName, templateObj] of Object.entries(defaultTemplates.templates)) {
+            if (!merged[tableName]) {
+                // 处理嵌套结构：templateObj 可能是 { template: "..." } 或直接是字符串
+                const templateContent = typeof templateObj === 'string' ? templateObj : templateObj?.template;
+                if (templateContent) {
+                    merged[tableName] = { template: templateContent, isDefault: true };
+                }
+            }
+        }
+    }
+
+    return merged;
+}
+
+/**
+ * 检查是否有可用的独立模板（持久化或默认）
+ * @returns {Promise<boolean>}
+ */
+export async function hasAnyIndependentTemplates() {
+    const savedTemplates = getAllIndependentTemplates();
+    if (Object.keys(savedTemplates).length > 0) {
+        return true;
+    }
+
+    const defaultTemplates = await loadDefaultIndependentTemplates();
+    return defaultTemplates?.templates && Object.keys(defaultTemplates.templates).length > 0;
+}
+
+/**
+ * 设置表格的独立模板
+ * @param {string} tableName 表格名称
+ * @param {string} template 模板内容
+ */
+export function setIndependentTemplate(tableName, template) {
+    const tableFillerConfig = getTableFillerConfig();
+    if (!tableFillerConfig.independentTemplates) {
+        tableFillerConfig.independentTemplates = {};
+    }
+    tableFillerConfig.independentTemplates[tableName] = { template };
+    saveTableFillerConfig(tableFillerConfig);
+}
+
+/**
+ * 删除表格的独立模板
+ * @param {string} tableName 表格名称
+ */
+export function deleteIndependentTemplate(tableName) {
+    const tableFillerConfig = getTableFillerConfig();
+    if (tableFillerConfig.independentTemplates?.[tableName]) {
+        delete tableFillerConfig.independentTemplates[tableName];
+        saveTableFillerConfig(tableFillerConfig);
+    }
+}
+
+/**
+ * 获取所有独立模板
+ * @returns {object} 所有模板
+ */
+export function getAllIndependentTemplates() {
+    const tableFillerConfig = getTableFillerConfig();
+    return tableFillerConfig.independentTemplates || {};
+}
+
+/**
+ * 设置独立模式的标签名称
+ * @param {string} tagName 标签名称
+ */
+export function setIndependentTagName(tagName) {
+    updateTableFillerConfig({ independentTagName: tagName });
+}
+
+/**
+ * 获取独立模式的标签名称
+ * @returns {string} 标签名称
+ */
+export function getIndependentTagName() {
+    const tableFillerConfig = getTableFillerConfig();
+    return tableFillerConfig.independentTagName || "Instructions for filling out the form";
+}
+
+// ============================================================================
+// 总结世界书拆分配置管理
+// ============================================================================
+
+/**
+ * 获取总结世界书拆分配置
+ * @returns {object} 拆分配置
+ */
+export function getSummaryAutoSplitConfig() {
+    const config = loadConfig();
+    const splitConfig = config?.global?.summaryAutoSplit;
+    if (!splitConfig) {
+        return {
+            enabled: false,
+            targetChars: 50000,
+            minChars: 40000,
+            maxChars: 60000,
+        };
+    }
+    return splitConfig;
+}
+
+/**
+ * 检查总结世界书拆分功能是否启用
+ * @returns {boolean}
+ */
+export function isSummaryAutoSplitEnabled() {
+    const splitConfig = getSummaryAutoSplitConfig();
+    return splitConfig?.enabled === true;
+}
+
+/**
+ * 检查总结世界书合并去重是否启用
+ * @returns {boolean}
+ */
+export function isSummaryMergeDeduplicateEnabled() {
+    const splitConfig = getSummaryAutoSplitConfig();
+    return splitConfig?.deduplicateOnMerge === true;
+}
+
+/**
+ * 设置总结世界书合并去重启用状态
+ * @param {boolean} enabled 是否启用
+ */
+export function setSummaryMergeDeduplicateEnabled(enabled) {
+    const config = loadConfig();
+    if (!config.global) config.global = {};
+    if (!config.global.summaryAutoSplit) {
+        config.global.summaryAutoSplit = {
+            enabled: false,
+            targetChars: 50000,
+            minChars: 40000,
+            maxChars: 60000,
+            deduplicateOnMerge: false,
+        };
+    }
+    config.global.summaryAutoSplit.deduplicateOnMerge = enabled;
+    saveConfig(config);
+}
+
+/**
+ * 设置总结世界书拆分功能启用状态
+ * @param {boolean} enabled 是否启用
+ */
+export function setSummaryAutoSplitEnabled(enabled) {
+    const config = loadConfig();
+    if (!config.global) config.global = {};
+    if (!config.global.summaryAutoSplit) {
+        config.global.summaryAutoSplit = {
+            enabled: false,
+            targetChars: 50000,
+            minChars: 40000,
+            maxChars: 60000,
+        };
+    }
+    config.global.summaryAutoSplit.enabled = enabled;
+    saveConfig(config);
+}
+
+/**
+ * 更新总结世界书拆分配置
+ * @param {object} updates 要更新的字段
+ */
+export function updateSummaryAutoSplitConfig(updates) {
+    const config = loadConfig();
+    if (!config.global) config.global = {};
+    if (!config.global.summaryAutoSplit) {
+        config.global.summaryAutoSplit = {
+            enabled: false,
+            targetChars: 50000,
+            minChars: 40000,
+            maxChars: 60000,
+        };
+    }
+    config.global.summaryAutoSplit = { ...config.global.summaryAutoSplit, ...updates };
+    saveConfig(config);
+}
+
+/**
+ * 获取指定世界书的Part配置
+ * @param {string} bookName 世界书名称
+ * @returns {object|null} Part配置
+ */
+export function getSummaryPartConfigs(bookName) {
+    const config = loadConfig();
+    return config?.summaryPartConfigs?.[bookName] || null;
+}
+
+/**
+ * 设置指定世界书的Part配置
+ * @param {string} bookName 世界书名称
+ * @param {object} partConfigs Part配置
+ */
+export function setSummaryPartConfigs(bookName, partConfigs) {
+    const config = loadConfig();
+    if (!config.summaryPartConfigs) {
+        config.summaryPartConfigs = {};
+    }
+    config.summaryPartConfigs[bookName] = partConfigs;
+    saveConfig(config);
+}
+
+/**
+ * 删除指定世界书的Part配置
+ * @param {string} bookName 世界书名称
+ */
+export function deleteSummaryPartConfigs(bookName) {
+    const config = loadConfig();
+    if (config.summaryPartConfigs?.[bookName]) {
+        delete config.summaryPartConfigs[bookName];
+        saveConfig(config);
+    }
+}
+
+/**
+ * 获取所有世界书的Part配置
+ * @returns {object} 所有Part配置
+ */
+export function getAllSummaryPartConfigs() {
+    const config = loadConfig();
+    return config?.summaryPartConfigs || {};
+}
+
+/**
+ * 获取指定Part的API配置
+ * @param {string} bookName 世界书名称
+ * @param {string} partId Part ID
+ * @returns {object|null} API配置
+ */
+export function getSummaryPartApiConfig(bookName, partId) {
+    const partConfigs = getSummaryPartConfigs(bookName);
+    if (!partConfigs?.parts) return null;
+
+    const part = partConfigs.parts.find(p => p.id === partId);
+    return part?.apiConfig || null;
+}
+
+/**
+ * 设置指定Part的API配置
+ * @param {string} bookName 世界书名称
+ * @param {string} partId Part ID
+ * @param {object} apiConfig API配置
+ */
+export function setSummaryPartApiConfig(bookName, partId, apiConfig) {
+    const config = loadConfig();
+    if (!config.summaryPartConfigs) {
+        config.summaryPartConfigs = {};
+    }
+    if (!config.summaryPartConfigs[bookName]) {
+        config.summaryPartConfigs[bookName] = { parts: [] };
+    }
+
+    const parts = config.summaryPartConfigs[bookName].parts;
+    const existingIndex = parts.findIndex(p => p.id === partId);
+
+    if (existingIndex >= 0) {
+        parts[existingIndex].apiConfig = apiConfig;
+    } else {
+        parts.push({ id: partId, apiConfig });
+    }
+
+    saveConfig(config);
+}
+
+/**
+ * 删除指定Part的API配置
+ * @param {string} bookName 世界书名称
+ * @param {string} partId Part ID
+ */
+export function deleteSummaryPartApiConfig(bookName, partId) {
+    const config = loadConfig();
+    if (!config.summaryPartConfigs?.[bookName]?.parts) return;
+
+    const parts = config.summaryPartConfigs[bookName].parts;
+    const index = parts.findIndex(p => p.id === partId);
+    if (index >= 0) {
+        parts[index].apiConfig = null;
+        saveConfig(config);
+    }
+}
+
+/**
+ * 检查指定世界书的所有Part是否都已配置API
+ * @param {string} bookName 世界书名称
+ * @param {Array} parts Part列表
+ * @returns {object} 检查结果 { allConfigured: boolean, unconfiguredParts: Array }
+ */
+export function checkSummaryPartsConfigured(bookName, parts) {
+    const partConfigs = getSummaryPartConfigs(bookName);
+    const unconfiguredParts = [];
+
+    for (const part of parts) {
+        const savedPart = partConfigs?.parts?.find(p => p.id === part.id);
+        if (!savedPart?.apiConfig?.apiUrl || !savedPart?.apiConfig?.model) {
+            unconfiguredParts.push(part);
+        }
+    }
+
+    return {
+        allConfigured: unconfiguredParts.length === 0,
+        unconfiguredParts,
+    };
+}
+
+/**
+ * 迁移原有的单API配置到Part 1
+ * @param {string} bookName 世界书名称
+ * @param {object} firstPart 第一个Part对象
+ * @returns {boolean} 是否进行了迁移
+ */
+export function migrateSummaryConfigToPart(bookName, firstPart) {
+    const config = loadConfig();
+    const existingConfig = config?.summaryConfigs?.[bookName];
+
+    if (!existingConfig?.apiUrl || !existingConfig?.model) {
+        return false;
+    }
+
+    // 检查是否已有Part配置
+    if (config.summaryPartConfigs?.[bookName]?.parts?.length > 0) {
+        return false;
+    }
+
+    // 迁移配置
+    if (!config.summaryPartConfigs) {
+        config.summaryPartConfigs = {};
+    }
+    config.summaryPartConfigs[bookName] = {
+        parts: [{
+            id: firstPart.id,
+            startFloor: firstPart.startFloor,
+            endFloor: firstPart.endFloor,
+            charCount: firstPart.charCount,
+            apiConfig: { ...existingConfig },
+        }],
+    };
+
+    saveConfig(config);
+    Logger.log(`[ConfigManager] 已将 ${bookName} 的原有API配置迁移至 Part 1`);
+    return true;
+}
+

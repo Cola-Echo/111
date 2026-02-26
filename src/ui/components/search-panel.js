@@ -4,14 +4,16 @@
  */
 
 import Logger from '@core/logger';
-import { getGlobalSettings, getGlobalConfig, getSummaryConfig } from '@config/config-manager';
+import { getGlobalSettings, getGlobalConfig, getSummaryConfig, isSummaryAutoSplitEnabled, getSummaryAutoSplitConfig, getSummaryPartConfigs, getSummaryPartApiConfig, isSummaryMergeDeduplicateEnabled } from '@config/config-manager';
 import { getImportedBookNames } from '@config/imported-books';
 import { getImportedWorldBooks, classifyWorldBooks, isSummaryBook } from '@worldbook/api';
 import { getSummaryContent } from '@worldbook/parser';
+import { analyzeSummaryContent, needsSplit } from '@worldbook/summary-splitter';
 import APIAdapter from '@api/adapter';
 import { getHistoricalPromptTemplate } from '@utils/prompt-template';
 import { buildDataInjection, injectDataToPrompt, replacePromptVariables, buildUserPrompt } from '@memory/prompt-builder';
 import { getJailbreakPrefix } from '@memory/jailbreak';
+import { isPartDebugEnabled, showPartDebugModal } from '@memory/part-debug-modal';
 
 // 进度追踪器引用（将在初始化时设置）
 let progressTracker = null;
@@ -382,7 +384,7 @@ export class MemorySearchPanel {
         msg.innerHTML = `
             <div class="mm-search-result-item" data-result-id="${resultId}" data-book-name="${this.escapeHtml(bookName)}">
                 <div class="mm-search-result-header">
-                    <span class="mm-search-result-floor">【${this.escapeHtml(floor)}楼】</span>
+                    <span class="mm-search-result-floor">${this.escapeHtml(floor.startsWith('【') ? floor : `【${floor}楼】`)}</span>
                     <div class="mm-search-result-actions">
                         <button class="mm-btn mm-btn-adopt mm-search-adopt-btn">
                             <i class="fa-solid fa-check"></i> 采纳
@@ -539,6 +541,17 @@ export class MemorySearchPanel {
             booksContainer.style.height = `${newHeight}px`;
             booksContainer.style.minHeight = `${newHeight}px`;
             booksContainer.style.maxHeight = `${newHeight}px`;
+
+            // 同步更新内部内容区域的最大高度
+            const bookContents = booksContainer.querySelectorAll('.mm-search-book-content');
+            const headerHeight = 45; // 每个世界书头部的大约高度
+            const bookCount = bookContents.length || 1;
+            // 计算每个内容区域可用的高度（减去头部高度后平分）
+            const contentMaxHeight = Math.max(100, (newHeight - headerHeight * bookCount) / bookCount);
+            bookContents.forEach(content => {
+                content.style.maxHeight = `${contentMaxHeight}px`;
+            });
+
             e.preventDefault();
         };
 
@@ -716,7 +729,7 @@ export class MemorySearchPanel {
         msg.innerHTML = `
             <div class="mm-search-result-item" data-result-id="${resultId}">
                 <div class="mm-search-result-header">
-                    <span class="mm-search-result-floor">【${floor}楼】</span>
+                    <span class="mm-search-result-floor">${String(floor).startsWith('【') ? floor : `【${floor}楼】`}</span>
                     <div class="mm-search-result-actions">
                         <button class="mm-btn mm-btn-adopt mm-search-adopt-btn">
                             <i class="fa-solid fa-check"></i> 采纳
@@ -901,7 +914,9 @@ export class MemorySearchPanel {
                 const floor = m.uid || m.key || "未知";
                 const content = m.content || "";
                 if (content.trim()) {
-                    historicalLines.push(`【${floor}楼】${content}`);
+                    // 如果 floor 已经是完整标签格式，直接使用
+                    const floorTag = String(floor).startsWith('【') ? floor : `【${floor}楼】`;
+                    historicalLines.push(`${floorTag}${content}`);
                 }
             }
         }
@@ -1229,45 +1244,169 @@ async function callHistoricalMemoryAI(panel, userMessage, context) {
 }
 
 /**
- * 调用单个总结世界书的 AI
+ * 调用单个总结世界书的 AI（支持拆分模式）
  */
 async function callSingleSummaryBookAI(panel, book, userMessage, context) {
+    const bookName = book.name;
+
+    try {
+        // 检查是否启用拆分
+        const splitEnabled = isSummaryAutoSplitEnabled();
+        const summaryContent = getSummaryContent(book);
+
+        if (splitEnabled) {
+            const splitConfig = getSummaryAutoSplitConfig();
+            const shouldSplit = needsSplit(summaryContent, splitConfig.targetChars);
+
+            if (shouldSplit) {
+                // 拆分模式：并发处理多个 Part
+                await callSummaryBookWithSplit(panel, book, userMessage, context, summaryContent, splitConfig);
+                return;
+            }
+        }
+
+        // 非拆分模式：单个 API 调用
+        await callSummaryBookSingle(panel, book, userMessage, context, summaryContent);
+    } catch (error) {
+        Logger.error(`[记忆搜索助手] 总结世界书 "${bookName}" 初始化失败:`, error.message);
+        panel.setBookStatus(bookName, "error", "失败");
+        panel.addBookSystemMessage(bookName, `初始化失败: ${error.message}`);
+    }
+}
+
+/**
+ * 单个 API 调用处理总结世界书（非拆分模式）
+ */
+async function callSummaryBookSingle(panel, book, userMessage, context, summaryContent) {
     const bookName = book.name;
     const taskId = `search_${bookName}`;
     const abortController = new AbortController();
 
+    panel.setBookStatus(bookName, "loading", "调用AI中...");
+    panel.addBookAIMessage(bookName, "正在调用历史事件回忆AI...");
+
+    const aiConfig = getSummaryConfig(bookName);
+    const globalConfig = getGlobalConfig();
+
+    const dataInjection = buildDataInjection({
+        worldBookContent: summaryContent,
+        context: context || "",
+        userMessage: userMessage,
+    });
+
+    const template = await getHistoricalPromptTemplate();
+    const jailbreakPrefix = getJailbreakPrefix();
+
+    const prompt = injectDataToPrompt(template, dataInjection, {
+        flowType: "总结世界书",
+        jailbreakPrefix: jailbreakPrefix,
+    });
+
+    const finalSystemPrompt = replacePromptVariables(prompt.systemPrompt, aiConfig, globalConfig);
+    const finalUserMessage = buildUserPrompt(userMessage);
+
+    if (progressTracker) {
+        progressTracker.addTask(taskId, `搜索:${bookName}`, "search");
+        progressTracker.setTaskAbortController(taskId, abortController);
+    }
+
     try {
-        panel.setBookStatus(bookName, "loading", "调用AI中...");
-        panel.addBookAIMessage(bookName, "正在调用历史事件回忆AI...");
-
-        const aiConfig = getSummaryConfig(bookName);
-        const globalConfig = getGlobalConfig();
-
-        const summaryContent = getSummaryContent(book);
-        const dataInjection = buildDataInjection({
-            worldBookContent: summaryContent,
-            context: context || "",
-            userMessage: userMessage,
-        });
-
-        const template = await getHistoricalPromptTemplate();
-        const prompt = injectDataToPrompt(template, dataInjection);
-        const baseSystemPrompt = replacePromptVariables(prompt.systemPrompt, aiConfig, globalConfig);
-
-        const finalSystemPrompt = getJailbreakPrefix() + "\n\n" + baseSystemPrompt;
-        const finalUserMessage = buildUserPrompt(userMessage);
+        const response = await APIAdapter.callWithRetry(
+            {
+                ...aiConfig,
+                category: bookName,
+                source: bookName,
+                taskId: taskId,
+            },
+            finalSystemPrompt,
+            finalUserMessage,
+            taskId,
+            3,
+            abortController.signal
+        );
 
         if (progressTracker) {
-            progressTracker.addTask(taskId, `搜索:${bookName}`, "search");
+            progressTracker.completeTask(taskId, true);
+        }
+
+        const events = parseHistoricalEvents(response);
+        displaySearchResults(panel, bookName, events);
+    } catch (error) {
+        handleSearchError(panel, bookName, taskId, error);
+    }
+}
+
+/**
+ * 拆分模式：并发处理多个 Part
+ */
+async function callSummaryBookWithSplit(panel, book, userMessage, context, summaryContent, splitConfig) {
+    const bookName = book.name;
+
+    // 分析拆分方案
+    const parts = analyzeSummaryContent(summaryContent, splitConfig);
+
+    if (parts.length <= 1) {
+        // 内容不足以拆分，使用单个 API
+        await callSummaryBookSingle(panel, book, userMessage, context, summaryContent);
+        return;
+    }
+
+    panel.setBookStatus(bookName, "loading", `并发处理 ${parts.length} 个Part...`);
+    panel.addBookAIMessage(bookName, `内容已拆分为 ${parts.length} 个Part，正在并发调用AI...`);
+
+    // 获取配置
+    const partConfigs = getSummaryPartConfigs(bookName);
+    const originalConfig = getSummaryConfig(bookName);
+    const globalConfig = getGlobalConfig();
+
+    // 并发处理所有 Part
+    const partPromises = parts.map(async (part) => {
+        // Part 1（index=0）复用原配置，其他 Part 使用各自的配置
+        let partConfig;
+        if (part.index === 0) {
+            partConfig = originalConfig;
+        } else {
+            partConfig = getSummaryPartApiConfig(bookName, part.id);
+        }
+
+        if (!partConfig || !partConfig.enabled) {
+            Logger.warn(`[记忆搜索助手] Part "${part.id}" 未配置，跳过`);
+            return { partId: part.id, success: false, error: "未配置", events: [] };
+        }
+
+        const taskId = `search_${bookName}_${part.id}`;
+        const abortController = new AbortController();
+
+        if (progressTracker) {
+            progressTracker.addTask(taskId, `搜索:${bookName} Part${part.index + 1}`, "search");
             progressTracker.setTaskAbortController(taskId, abortController);
         }
 
         try {
+            const partContent = `=== Part ${part.id} (${part.startFloor}-${part.endFloor}楼) ===\n${part.content}`;
+
+            const dataInjection = buildDataInjection({
+                worldBookContent: partContent,
+                context: context || "",
+                userMessage: userMessage,
+            });
+
+            const template = await getHistoricalPromptTemplate();
+            const jailbreakPrefix = getJailbreakPrefix();
+
+            const prompt = injectDataToPrompt(template, dataInjection, {
+                flowType: "总结世界书",
+                jailbreakPrefix: jailbreakPrefix,
+            });
+
+            const finalSystemPrompt = replacePromptVariables(prompt.systemPrompt, partConfig, globalConfig);
+            const finalUserMessage = buildUserPrompt(userMessage);
+
             const response = await APIAdapter.callWithRetry(
                 {
-                    ...aiConfig,
+                    ...partConfig,
                     category: bookName,
-                    source: bookName,
+                    source: `${bookName} Part${part.index + 1}`,
                     taskId: taskId,
                 },
                 finalSystemPrompt,
@@ -1282,39 +1421,163 @@ async function callSingleSummaryBookAI(panel, book, userMessage, context) {
             }
 
             const events = parseHistoricalEvents(response);
-
-            if (events.length === 0) {
-                panel.setBookStatus(bookName, "success", "无结果");
-                panel.addBookSystemMessage(bookName, "AI未返回历史事件，请尝试自定义搜索");
-            } else {
-                panel.setBookStatus(bookName, "success", `${events.length} 条`);
-                panel.addBookAIMessage(bookName, `AI返回 ${events.length} 条历史事件:`);
-                for (const event of events) {
-                    panel.addBookSearchResult(bookName, {
-                        uid: event.floor,
-                        content: event.content,
-                    });
-                }
-            }
+            return {
+                partId: part.id,
+                partIndex: part.index,
+                success: true,
+                rawMemory: response,
+                events: events,
+            };
         } catch (error) {
             const isAborted = error.name === "AbortError";
             if (progressTracker) {
                 progressTracker.completeTask(taskId, false, isAborted ? "已终止" : error.message);
             }
-            if (isAborted) {
-                Logger.warn(`[记忆搜索助手] 总结世界书 "${bookName}" 已被终止`);
-                panel.setBookStatus(bookName, "error", "已终止");
-                panel.addBookSystemMessage(bookName, "搜索已被用户终止");
-            } else {
-                Logger.error(`[记忆搜索助手] 总结世界书 "${bookName}" AI调用失败:`, error.message);
-                panel.setBookStatus(bookName, "error", "失败");
-                panel.addBookSystemMessage(bookName, `AI调用失败: ${error.message}`);
+            return {
+                partId: part.id,
+                partIndex: part.index,
+                success: false,
+                error: isAborted ? "已终止" : error.message,
+                events: [],
+            };
+        }
+    });
+
+    const partResults = await Promise.all(partPromises);
+
+    // 合并结果
+    const mergedEvents = mergePartEventsForSearch(partResults);
+
+    // 显示调试弹窗（如果启用）
+    if (isPartDebugEnabled()) {
+        const debugResults = partResults.map(r => ({
+            partId: r.partId,
+            rawMemory: r.rawMemory || `(${r.error || '无返回'})`,
+        }));
+        const mergedResult = {
+            rawMemory: mergedEvents.map(e => {
+                const floorTag = String(e.floor).startsWith('【') ? e.floor : `【${e.floor}楼】`;
+                return `${floorTag}${e.content}`;
+            }).join('\n'),
+            eventCount: mergedEvents.length,
+        };
+        showPartDebugModal(debugResults, bookName, mergedResult);
+    }
+
+    // 统计结果
+    const successCount = partResults.filter(r => r.success).length;
+    const failCount = partResults.length - successCount;
+
+    if (mergedEvents.length === 0) {
+        panel.setBookStatus(bookName, failCount > 0 ? "error" : "success", "无结果");
+        panel.addBookSystemMessage(bookName, `${successCount}/${parts.length} 个Part成功，AI未返回历史事件`);
+    } else {
+        panel.setBookStatus(bookName, "success", `${mergedEvents.length} 条`);
+        panel.addBookAIMessage(bookName, `${successCount}/${parts.length} 个Part成功，共返回 ${mergedEvents.length} 条历史事件:`);
+        for (const event of mergedEvents) {
+            panel.addBookSearchResult(bookName, {
+                uid: event.floor,
+                content: event.content,
+            });
+        }
+    }
+}
+
+/**
+ * 合并多个 Part 的搜索结果
+ */
+function mergePartEventsForSearch(partResults) {
+    const deduplicateEnabled = isSummaryMergeDeduplicateEnabled();
+    const allEvents = [];
+
+    // 收集所有事件（保持原始顺序）
+    for (const result of partResults) {
+        if (result.success && result.events) {
+            for (const event of result.events) {
+                allEvents.push({
+                    floor: event.floor,
+                    content: event.content,
+                    sourcePartId: result.partId,
+                });
             }
         }
-    } catch (error) {
-        Logger.error(`[记忆搜索助手] 总结世界书 "${bookName}" 初始化失败:`, error.message);
+    }
+
+    if (deduplicateEnabled) {
+        // 去重模式：同一楼层只保留内容最长的
+        const floorBestEvent = new Map();
+        for (const event of allEvents) {
+            const existing = floorBestEvent.get(event.floor);
+            if (!existing || event.content.length > existing.content.length) {
+                floorBestEvent.set(event.floor, event);
+            }
+        }
+        // 按原始出现顺序输出（使用第一次出现的顺序）
+        const seenFloors = new Set();
+        const uniqueEvents = [];
+        for (const event of allEvents) {
+            if (!seenFloors.has(event.floor)) {
+                seenFloors.add(event.floor);
+                uniqueEvents.push(floorBestEvent.get(event.floor));
+            }
+        }
+        return uniqueEvents;
+    } else {
+        // 不去重模式：相同楼层的内容放在一起
+        const floorGroups = new Map();
+        const floorOrder = [];
+
+        for (const event of allEvents) {
+            if (!floorGroups.has(event.floor)) {
+                floorGroups.set(event.floor, []);
+                floorOrder.push(event.floor);
+            }
+            floorGroups.get(event.floor).push(event);
+        }
+
+        const finalEvents = [];
+        for (const floor of floorOrder) {
+            finalEvents.push(...floorGroups.get(floor));
+        }
+        return finalEvents;
+    }
+}
+
+/**
+ * 显示搜索结果
+ */
+function displaySearchResults(panel, bookName, events) {
+    if (events.length === 0) {
+        panel.setBookStatus(bookName, "success", "无结果");
+        panel.addBookSystemMessage(bookName, "AI未返回历史事件，请尝试自定义搜索");
+    } else {
+        panel.setBookStatus(bookName, "success", `${events.length} 条`);
+        panel.addBookAIMessage(bookName, `AI返回 ${events.length} 条历史事件:`);
+        for (const event of events) {
+            panel.addBookSearchResult(bookName, {
+                uid: event.floor,
+                content: event.content,
+            });
+        }
+    }
+}
+
+/**
+ * 处理搜索错误
+ */
+function handleSearchError(panel, bookName, taskId, error) {
+    const isAborted = error.name === "AbortError";
+    if (progressTracker) {
+        progressTracker.completeTask(taskId, false, isAborted ? "已终止" : error.message);
+    }
+    if (isAborted) {
+        Logger.warn(`[记忆搜索助手] 总结世界书 "${bookName}" 已被终止`);
+        panel.setBookStatus(bookName, "error", "已终止");
+        panel.addBookSystemMessage(bookName, "搜索已被用户终止");
+    } else {
+        Logger.error(`[记忆搜索助手] 总结世界书 "${bookName}" AI调用失败:`, error.message);
         panel.setBookStatus(bookName, "error", "失败");
-        panel.addBookSystemMessage(bookName, `初始化失败: ${error.message}`);
+        panel.addBookSystemMessage(bookName, `AI调用失败: ${error.message}`);
     }
 }
 
@@ -1334,11 +1597,16 @@ function parseHistoricalEvents(response) {
 
     for (const line of lines) {
         const trimmed = line.trim();
-        const floorMatch = trimmed.match(/^【(\d+)楼】(.*)$/);
+        // 兼容多种楼层格式：【124楼】、【124至#125】、【124至125楼】
+        // 捕获完整的楼层标签和内容
+        const floorMatch = trimmed.match(/^(【\d+(?:楼|至#?\d+楼?)】)(.*)$/);
         if (floorMatch) {
+            // 保留完整的楼层标签（如 【124至#125】）
+            const floorTag = floorMatch[1];
+            const content = floorMatch[2] || '';
             events.push({
-                floor: floorMatch[1],
-                content: floorMatch[2].trim(),
+                floor: floorTag,
+                content: content.trim(),
             });
         }
     }

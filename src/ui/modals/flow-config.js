@@ -34,6 +34,14 @@ export const SOURCE_LABELS = {
     plot_input: "[剧情优化] 面板用户输入 <最新用户消息>",
 };
 
+// 流程类型与调用功能的映射说明（用于UI悬停提示）
+const FLOW_TYPE_DESCRIPTIONS = {
+    "记忆世界书": "调用功能：记忆世界书处理",
+    "总结世界书": "调用功能：总结世界书处理、记忆搜索助手",
+    "索引合并": "调用功能：索引合并处理",
+    "剧情优化": "调用功能：剧情优化助手",
+};
+
 /**
  * 从配置文件加载流程配置
  * @param {boolean} forceReload - 是否强制重新加载（从服务器重新加载）
@@ -272,11 +280,15 @@ export async function renderFlowConfigList(savedOrder = null) {
             (source) => source !== "jailbreak",
         );
 
+        // 获取流程类型的悬停提示说明
+        const flowTypeDescription = FLOW_TYPE_DESCRIPTIONS[category] || "";
+
         card.innerHTML = `
         <div class="mm-collapse-header mm-flow-group-header">
           <div class="mm-collapse-title">
             <i class="fa-solid fa-folder"></i>
-            <span>${category}</span>
+            <span title="${flowTypeDescription.replace(/"/g, '&quot;')}">${category}</span>
+            <i class="fa-solid fa-circle-question mm-flow-hint-icon" title="${flowTypeDescription.replace(/"/g, '&quot;')}" style="margin-left: 6px; font-size: 12px; opacity: 0.6; cursor: help;"></i>
             <span class="mm-collapse-badge">${visibleSources.length} 项</span>
           </div>
           <i class="fa-solid fa-chevron-down mm-collapse-arrow"></i>

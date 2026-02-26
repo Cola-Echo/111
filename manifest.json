@@ -1,8 +1,9 @@
 {
     "display_name": "记忆管理并发系统",
     "description": "智能记忆检索与注入系统，支持并发处理、世界书管理和剧情优化",
-    "version": "0.4.7",
+    "version": "0.5.0",
     "author": "可乐、繁华",
+    "license": "CC BY-NC-ND 4.0",
     "homePage": "https://github.com/Cola-Echo/memory-manager-concurrent",
     "js": "dist/index.js",
     "css": "style.css",
