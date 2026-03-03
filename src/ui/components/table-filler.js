@@ -4,6 +4,7 @@
  */
 
 import Logger from "@core/logger";
+import { getExtensionSettings } from "@core/sillytavern-api";
 import {
     getTableFillerConfig,
     isTableFillerEnabled,
@@ -45,7 +46,7 @@ async function getAmily2TableNames() {
     try {
         // 方法1：直接从 extension_settings 获取预设中的表格定义（最可靠）
         const amilyExtName = "ST-Amily2-Chat-Optimisation";
-        const settings = window.extension_settings?.[amilyExtName];
+        const settings = getExtensionSettings()?.[amilyExtName];
 
         if (settings) {
             log.debug("找到 Amily2 扩展设置，检查表格定义...");
@@ -140,9 +141,9 @@ async function getAmily2TableNames() {
 
         // 方法5：遍历所有 extension_settings 找 Amily2 相关
         log.debug("遍历所有扩展设置查找 Amily2...");
-        for (const key in window.extension_settings || {}) {
+        for (const key in getExtensionSettings() || {}) {
             if (key.toLowerCase().includes('amily')) {
-                const extSettings = window.extension_settings[key];
+                const extSettings = getExtensionSettings()[key];
                 log.debug(`检查扩展 ${key}:`, Object.keys(extSettings || {}));
 
                 // 深度搜索 tables

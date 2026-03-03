@@ -4,6 +4,7 @@
  */
 
 import Logger from "@core/logger";
+import { getExtensionSettings } from "@core/sillytavern-api";
 import {
     setIndependentTemplate,
     deleteIndependentTemplate,
@@ -32,7 +33,7 @@ async function getAmily2TableNames() {
     try {
         // 复用 table-filler.js 中的获取逻辑
         const amilyExtName = "ST-Amily2-Chat-Optimisation";
-        const settings = window.extension_settings?.[amilyExtName];
+        const settings = getExtensionSettings()?.[amilyExtName];
 
         if (settings?.global_table_preset?.tables) {
             const tables = settings.global_table_preset.tables;

@@ -5,6 +5,7 @@
  */
 
 import Logger from "@core/logger";
+import { getExtensionSettings } from "@core/sillytavern-api";
 
 /**
  * 调用模式枚举
@@ -142,7 +143,7 @@ function checkInterceptMode() {
         ];
 
         for (const key of possibleKeys) {
-            if (window.extension_settings?.[key]) {
+            if (getExtensionSettings()?.[key]) {
                 return true;
             }
         }
@@ -168,8 +169,8 @@ export function isSecondaryApiMode() {
 
         let amilySettings = null;
         for (const key of possibleKeys) {
-            if (window.extension_settings?.[key]) {
-                amilySettings = window.extension_settings[key];
+            if (getExtensionSettings()?.[key]) {
+                amilySettings = getExtensionSettings()[key];
                 break;
             }
         }
@@ -208,8 +209,8 @@ export function getAmily2FillingModeName() {
 
         let amilySettings = null;
         for (const key of possibleKeys) {
-            if (window.extension_settings?.[key]) {
-                amilySettings = window.extension_settings[key];
+            if (getExtensionSettings()?.[key]) {
+                amilySettings = getExtensionSettings()[key];
                 break;
             }
         }

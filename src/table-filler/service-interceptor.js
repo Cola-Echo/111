@@ -7,6 +7,7 @@
  */
 
 import Logger from "@core/logger";
+import { getExtensionSettings } from "@core/sillytavern-api";
 import { getTableFillerConfig, isTableFillerEnabled } from "@config/config-manager";
 import { splitTablesFromMessages, mergeResults } from "./table-splitter";
 import { ParallelExecutor } from "./parallel-executor";
@@ -41,7 +42,7 @@ function getSTContext() {
 
     // 尝试从 extension 模块获取
     try {
-        const extensions = window.extension_settings;
+        const extensions = getExtensionSettings();
         if (extensions) {
             // 尝试从任一扩展获取 context
             for (const key in extensions) {

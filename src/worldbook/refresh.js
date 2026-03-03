@@ -368,8 +368,8 @@ function renderSummaryPartsUI(book, config) {
 
     // 获取已保存的Part配置
     const savedPartConfigs = getSummaryPartConfigs(book.name);
-    // 获取原总结世界书配置（Part 1 复用）
-    const originalSummaryConfig = getSummaryConfig(book.name);
+    // 获取原总结世界书配置（Part 1 复用），未配置时不报错
+    const originalSummaryConfig = config?.summaryConfigs?.[book.name] || null;
 
     // 构建已保存配置的映射（用于模糊匹配）
     const savedConfigsMap = {};
