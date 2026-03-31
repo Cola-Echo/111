@@ -58,6 +58,7 @@ module.exports = (env, argv) => {
                 '@ui': path.resolve(__dirname, 'src/ui'),
                 '@utils': path.resolve(__dirname, 'src/utils'),
                 '@table-filler': path.resolve(__dirname, 'src/table-filler'),
+                '@rma': path.resolve(__dirname, 'src/rma'),
             }
         },
     };

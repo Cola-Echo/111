@@ -79,6 +79,7 @@ export {
     setHasImportedSummaryBooksFunction,
     setOpenIndexMergeConfigModalFunction,
     setOpenPlotOptimizeConfigModalFunction,
+    setOpenRmaConfigModalFunction,
     setClearUpdatesListFunction,
     setInitFlowConfigResizeFunction,
     setLoadWorldbookControlListFunction,
@@ -107,6 +108,9 @@ export {
     // 模型显示更新
     updateIndexMergeModelDisplay,
     updatePlotOptimizeModelDisplay,
+    // RMA 关系记忆
+    updateRmaBadge,
+    updateRmaModelDisplay,
 } from './events';
 
 // 标签过滤组件

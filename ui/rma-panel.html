@@ -1,0 +1,49 @@
+<!-- RMA 关系记忆系统 悬浮面板 -->
+<div id="rma-float-panel" class="rma-panel rma-panel-minimized" style="display:none">
+    <!-- 最小化图标 -->
+    <div class="rma-panel-minimized-icon" id="rma-minimize-icon" title="RMA 关系系统">🔮</div>
+
+    <!-- 面板头部 -->
+    <div class="rma-panel-header" id="rma-panel-header">
+        <span class="rma-panel-title">RMA 关系系统</span>
+        <div class="rma-panel-controls">
+            <button class="rma-btn-sm" id="rma-collapse-btn" title="折叠">—</button>
+            <button class="rma-btn-sm" id="rma-minimize-btn" title="最小化">_</button>
+        </div>
+    </div>
+
+    <!-- 半折叠摘要行 -->
+    <div class="rma-panel-half" id="rma-panel-half"></div>
+
+    <!-- 展开面板主体 -->
+    <div class="rma-panel-body" id="rma-panel-body">
+        <!-- 阶段指示器 -->
+        <div id="rma-phase-section" class="rma-section"></div>
+
+        <!-- 当前感受 -->
+        <div id="rma-feeling-section" class="rma-section"></div>
+
+        <!-- 秘密进度 -->
+        <div id="rma-secrets-section" class="rma-section"></div>
+
+        <!-- 未解决事项 -->
+        <div id="rma-threads-section" class="rma-section"></div>
+
+        <!-- 故事状态 -->
+        <div id="rma-story-section" class="rma-section rma-story-bar"></div>
+
+        <!-- 最近记忆 -->
+        <div id="rma-memories-section" class="rma-section"></div>
+
+        <!-- 待确认区域 -->
+        <div id="rma-pending-section" class="rma-section rma-pending-area"></div>
+    </div>
+
+    <!-- 底部操作栏 -->
+    <div class="rma-panel-footer">
+        <button class="rma-btn-sm" id="rma-timeline-btn" title="查看完整记忆时间线">📜 完整记忆</button>
+    </div>
+
+    <!-- 时间线容器 -->
+    <div id="rma-timeline-container" style="display:none"></div>
+</div>

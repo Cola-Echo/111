@@ -11,6 +11,26 @@
 
 ---
 
+## [0.6.0] - 2026-03-31
+
+### RMA 关系记忆系统（全新模块）
+- **新增**：`src/rma/` 模块（10个文件），实现完整的关系记忆架构
+  - `config-loader.js` — 从角色卡 `extensions.cola_rma_config` 加载 RMA 配置
+  - `memory-store.js` — 基于 `chat_metadata.cola_rma` 的记忆存储管理
+  - `analyzer.js` — 后处理 AI 分析引擎，独立 API 调用提取关系变化
+  - `response-hook.js` — 监听 `CHARACTER_MESSAGE_RENDERED` / `MESSAGE_DELETED` 事件
+  - `phase-manager.js` — 六阶段关系管理（stranger→bond），支持回退
+  - `worldbook-sync.js` — 世界书条目同步（阶段互斥切换、质感改写、事件解锁）
+  - `confirmation-ui.js` — 用户确认流程（每轮/仅重要/全自动三种模式）
+  - `float-panel.js` — 悬浮面板 UI（展开/半折叠/最小化三态）
+  - `timeline-view.js` — 记忆时间线视图
+- **新增**：四种记忆类型 — breakthrough(⭐)、warmth(💛)、crack(⚡)、revelation(👁)
+- **新增**：RMA 设置面板 — 启用开关、确认模式选择、面板状态偏好、独立 API 配置
+- **新增**：`ui/rma-panel.html` — RMA 悬浮面板 HTML 模板
+- **新增**：RMA 面板 CSS 样式，兼容已有多主题系统
+
+---
+
 ## [0.5.0] - 2025-02-13
 
 ### 总结世界书拆分功能优化

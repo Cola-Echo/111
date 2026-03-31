@@ -726,6 +726,81 @@
           </div>
         </div>
       </div>
+
+      <!-- RMA 关系记忆系统折叠卡片 -->
+      <div class="mm-collapse-card" id="mm-rma-card">
+        <div class="mm-collapse-header" id="mm-rma-toggle">
+          <div class="mm-collapse-title">
+            <i class="fa-solid fa-heart-pulse"></i>
+            <span>RMA 关系记忆</span>
+            <span class="mm-collapse-badge" id="mm-rma-badge">关闭</span>
+          </div>
+          <i class="fa-solid fa-chevron-down mm-collapse-arrow"></i>
+        </div>
+        <div class="mm-collapse-body">
+          <div class="mm-index-mode-content">
+            <!-- 启用开关 -->
+            <div class="mm-setting-item">
+              <label class="mm-label-with-hint">
+                <input type="checkbox" id="mm-rma-enabled" />
+                启用 RMA 关系记忆系统
+                <i class="fa-solid fa-circle-question mm-hint-icon" title="自动分析每轮对话中的关系变化，管理记忆、动态更新世界书条目。需要角色卡包含 RMA 配置。"></i>
+              </label>
+            </div>
+
+            <!-- 角色卡检测状态 -->
+            <div class="mm-setting-item" id="mm-rma-char-status" style="display: none;">
+              <div class="mm-rma-status-row">
+                <i class="fa-solid fa-user-check" style="color: var(--mm-success);"></i>
+                <span id="mm-rma-char-status-text">当前角色已配置 RMA</span>
+              </div>
+            </div>
+
+            <!-- 确认模式 -->
+            <div class="mm-setting-item">
+              <label class="mm-label-with-hint">
+                确认模式
+                <i class="fa-solid fa-circle-question mm-hint-icon" title="every_turn: 每轮都弹窗确认&#10;important_only: 仅阶段变化/秘密进展/裂痕时确认&#10;auto: 全自动，事后可在面板修改"></i>
+              </label>
+              <select id="mm-rma-confirmation-mode" class="mm-select mm-select-sm">
+                <option value="every_turn">每轮确认</option>
+                <option value="important_only">仅重要变化</option>
+                <option value="auto">全自动</option>
+              </select>
+            </div>
+
+            <!-- 面板默认状态 -->
+            <div class="mm-setting-item">
+              <label class="mm-label-with-hint">
+                悬浮面板默认状态
+                <i class="fa-solid fa-circle-question mm-hint-icon" title="面板初始显示状态&#10;展开: 显示所有信息&#10;半折叠: 仅显示一行摘要&#10;最小化: 仅显示角落图标"></i>
+              </label>
+              <select id="mm-rma-panel-state" class="mm-select mm-select-sm">
+                <option value="expanded">展开</option>
+                <option value="half_collapsed">半折叠</option>
+                <option value="minimized">最小化</option>
+              </select>
+            </div>
+
+            <!-- RMA 分析 API 配置卡片 -->
+            <div id="mm-rma-config-card" class="mm-ai-config-item" style="margin-top: 10px;">
+              <div class="mm-config-info">
+                <span class="mm-config-name">
+                  <i class="fa-solid fa-robot"></i>
+                  RMA 分析
+                </span>
+                <span class="mm-config-model" id="mm-rma-model-display">未配置</span>
+              </div>
+              <div class="mm-config-actions">
+                <button type="button" id="mm-rma-edit" class="mm-btn mm-btn-xs mm-btn-primary" title="编辑配置">
+                  <i class="fa-solid fa-pen"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 

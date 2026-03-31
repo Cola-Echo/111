@@ -9074,4 +9074,442 @@ input.mm-input-sm {
   }
 }
 
+/* ============================================================================
+   RMA 关系记忆系统 - 悬浮面板
+   ============================================================================ */
+
+.rma-panel {
+  position: fixed;
+  right: 16px;
+  top: 80px;
+  z-index: 10000;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  color: var(--mm-text, #e4e4e4);
+  transition: var(--mm-transition, all 0.3s ease);
+}
+
+/* 最小化状态 */
+.rma-panel.rma-panel-minimized .rma-panel-header,
+.rma-panel.rma-panel-minimized .rma-panel-body,
+.rma-panel.rma-panel-minimized .rma-panel-half,
+.rma-panel.rma-panel-minimized .rma-panel-footer,
+.rma-panel.rma-panel-minimized #rma-timeline-container {
+  display: none !important;
+}
+
+.rma-panel.rma-panel-minimized .rma-panel-minimized-icon {
+  display: flex;
+}
+
+.rma-panel-minimized-icon {
+  display: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--mm-bg-card, #0f3460);
+  border: 1px solid var(--mm-border, #2a2a4a);
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  cursor: pointer;
+  box-shadow: var(--mm-shadow);
+  transition: transform 0.2s;
+}
+
+.rma-panel-minimized-icon:hover {
+  transform: scale(1.1);
+}
+
+/* 半折叠状态 */
+.rma-panel.rma-panel-half .rma-panel-body,
+.rma-panel.rma-panel-half .rma-panel-footer,
+.rma-panel.rma-panel-half #rma-timeline-container {
+  display: none !important;
+}
+
+.rma-panel.rma-panel-half .rma-panel-minimized-icon {
+  display: none;
+}
+
+.rma-panel.rma-panel-half .rma-panel-half {
+  display: block;
+}
+
+.rma-panel.rma-panel-half {
+  width: auto;
+  max-width: 380px;
+  background: var(--mm-bg-card, #0f3460);
+  border: 1px solid var(--mm-border, #2a2a4a);
+  border-radius: var(--mm-radius, 8px);
+  box-shadow: var(--mm-shadow);
+}
+
+.rma-panel-half {
+  display: none;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--mm-text-muted, #8a8a8a);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 展开状态 */
+.rma-panel.rma-panel-expanded .rma-panel-minimized-icon {
+  display: none;
+}
+
+.rma-panel.rma-panel-expanded .rma-panel-half {
+  display: none;
+}
+
+.rma-panel.rma-panel-expanded {
+  width: 320px;
+  max-height: 80vh;
+  background: var(--mm-bg-card, #0f3460);
+  border: 1px solid var(--mm-border, #2a2a4a);
+  border-radius: var(--mm-radius, 8px);
+  box-shadow: var(--mm-shadow);
+  overflow-y: auto;
+}
+
+/* 面板头部 */
+.rma-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--mm-bg-secondary, #16213e);
+  border-bottom: 1px solid var(--mm-border, #2a2a4a);
+  border-radius: var(--mm-radius, 8px) var(--mm-radius, 8px) 0 0;
+  cursor: move;
+  user-select: none;
+}
+
+.rma-panel-title {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.rma-panel-controls {
+  display: flex;
+  gap: 4px;
+}
+
+/* 面板主体 */
+.rma-panel-body {
+  padding: 8px 12px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.rma-section {
+  margin-bottom: 8px;
+}
+
+.rma-section:empty {
+  display: none;
+}
+
+/* 阶段指示器 */
+.rma-phase-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  padding: 6px 0;
+}
+
+.rma-phase-dot {
+  padding: 2px 6px;
+  border-radius: 10px;
+  background: var(--mm-bg-secondary, #16213e);
+  color: var(--mm-text-muted, #8a8a8a);
+}
+
+.rma-phase-dot.active {
+  background: var(--mm-primary, #4a90d9);
+  color: #fff;
+  font-weight: 600;
+}
+
+.rma-phase-dot.past {
+  opacity: 0.6;
+}
+
+/* 感受/质感 */
+.rma-feeling {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--mm-text-muted, #8a8a8a);
+  padding: 4px 0;
+  line-height: 1.5;
+}
+
+/* 秘密 */
+.rma-secret-item {
+  font-size: 12px;
+  padding: 2px 0;
+}
+
+/* 未解决事项 */
+.rma-thread {
+  font-size: 12px;
+  padding: 2px 0;
+  color: var(--mm-warning, #ffc107);
+}
+
+/* 故事状态 */
+.rma-story-bar {
+  font-size: 11px;
+  color: var(--mm-text-muted, #8a8a8a);
+  padding: 4px 0;
+}
+
+/* 记忆简述 */
+.rma-mem-brief {
+  font-size: 12px;
+  padding: 2px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 标签 */
+.rma-pending-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--mm-text-muted, #8a8a8a);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--mm-border, #2a2a4a);
+}
+
+/* 面板底部 */
+.rma-panel-footer {
+  padding: 8px 12px;
+  border-top: 1px solid var(--mm-border, #2a2a4a);
+  text-align: center;
+}
+
+/* ---- 待确认区域 ---- */
+.rma-pending-area {
+  border: 1px solid var(--mm-warning, #ffc107);
+  border-radius: 6px;
+  padding: 8px;
+  margin-top: 8px;
+  background: rgba(255, 193, 7, 0.05);
+}
+
+.rma-pending-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  font-size: 12px;
+}
+
+.rma-pending-event {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rma-pending-actions {
+  display: flex;
+  gap: 2px;
+}
+
+.rma-type-badge {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+.rma-type-breakthrough { background: rgba(255, 215, 0, 0.2); color: #ffd700; }
+.rma-type-warmth { background: rgba(255, 200, 50, 0.2); color: #ffc832; }
+.rma-type-crack { background: rgba(220, 53, 69, 0.2); color: #dc3545; }
+.rma-type-revelation { background: rgba(138, 43, 226, 0.2); color: #9b59b6; }
+
+.rma-phase-change {
+  font-size: 12px;
+  padding: 4px 0;
+  color: var(--mm-primary, #4a90d9);
+}
+
+.rma-narrative-preview {
+  font-size: 12px;
+  font-style: italic;
+  line-height: 1.6;
+  padding: 6px 8px;
+  background: var(--mm-bg-secondary, #16213e);
+  border-radius: 4px;
+  max-height: 120px;
+  overflow-y: auto;
+  outline: none;
+  border: 1px solid transparent;
+}
+
+.rma-narrative-preview:focus {
+  border-color: var(--mm-primary, #4a90d9);
+}
+
+.rma-pending-actions-bar {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+/* ---- 按钮 ---- */
+.rma-btn {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: var(--mm-transition);
+}
+
+.rma-btn-confirm {
+  background: var(--mm-success, #28a745);
+  color: #fff;
+}
+
+.rma-btn-confirm:hover {
+  filter: brightness(1.15);
+}
+
+.rma-btn-reanalyze {
+  background: var(--mm-secondary, #6c757d);
+  color: #fff;
+}
+
+.rma-btn-reanalyze:hover {
+  filter: brightness(1.15);
+}
+
+.rma-btn-sm {
+  background: none;
+  border: 1px solid var(--mm-border, #2a2a4a);
+  color: var(--mm-text, #e4e4e4);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: var(--mm-transition);
+}
+
+.rma-btn-sm:hover {
+  background: var(--mm-bg-secondary, #16213e);
+}
+
+/* ---- 时间线 ---- */
+.rma-timeline {
+  padding: 8px 12px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.rma-timeline-empty {
+  text-align: center;
+  color: var(--mm-text-muted, #8a8a8a);
+  padding: 20px;
+  font-size: 12px;
+}
+
+.rma-timeline-group {
+  margin-bottom: 12px;
+}
+
+.rma-timeline-day {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--mm-primary, #4a90d9);
+  margin-bottom: 4px;
+}
+
+.rma-timeline-item {
+  display: flex;
+  gap: 8px;
+  padding: 4px 0;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.rma-timeline-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.rma-timeline-icon {
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+}
+
+.rma-timeline-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.rma-timeline-type {
+  font-size: 10px;
+  color: var(--mm-text-muted, #8a8a8a);
+}
+
+.rma-timeline-event {
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rma-timeline-impact {
+  display: none;
+  font-size: 11px;
+  color: var(--mm-text-muted, #8a8a8a);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.rma-timeline-item.rma-timeline-expanded .rma-timeline-event {
+  white-space: normal;
+}
+
+.rma-timeline-item.rma-timeline-expanded .rma-timeline-impact {
+  display: block;
+}
+
+.rma-timeline-warn {
+  font-size: 10px;
+  color: var(--mm-warning, #ffc107);
+}
+
+.rma-mem-invalid {
+  opacity: 0.5;
+}
+
+.rma-pending-empty {
+  text-align: center;
+  color: var(--mm-text-muted, #8a8a8a);
+  padding: 8px;
+  font-size: 12px;
+}
+
+/* RMA 设置面板状态行 */
+.mm-rma-status-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--mm-text-secondary, #aaa);
+}
 

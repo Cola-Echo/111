@@ -9,6 +9,7 @@ import {
     deleteSummaryConfig,
     getGlobalSettings,
     loadConfig,
+    saveConfig as savePluginConfig,
     setMemoryConfig,
     setSummaryConfig,
     updateGlobalSettings,
@@ -21,19 +22,22 @@ import { refreshWorldBookList } from "@worldbook/refresh";
 import { getWorldBookList, getWorldBookEntries } from "@worldbook/api";
 import { analyzeSummaryContent, formatCharCount } from "@worldbook/summary-splitter";
 import { getSummaryContent } from "@worldbook/parser";
+import { buildOpenAIModelsUrl } from "@utils/url-builder";
 
 // 更新显示回调函数（将在初始化时注入）
 let updateIndexMergeModelDisplayFn = null;
 let updatePlotOptimizeModelDisplayFn = null;
+let updateRmaModelDisplayFn = null;
 let refreshAIConfigListFn = null;
 
 /**
  * 设置更新显示函数
  */
-export function setUpdateDisplayFunctions(indexMergeFn, plotOptimizeFn, refreshConfigListFn) {
+export function setUpdateDisplayFunctions(indexMergeFn, plotOptimizeFn, refreshConfigListFn, rmaFn) {
     updateIndexMergeModelDisplayFn = indexMergeFn;
     updatePlotOptimizeModelDisplayFn = plotOptimizeFn;
     refreshAIConfigListFn = refreshConfigListFn;
+    updateRmaModelDisplayFn = rmaFn || null;
 }
 
 // 当前编辑状态
@@ -131,6 +135,8 @@ export function showConfigModal(category, type = "memory", partInfo = null) {
         itemConfig = globalSettings.indexMergeConfig || {};
     } else if (type === "plot") {
         itemConfig = globalSettings.plotOptimizeConfig || {};
+    } else if (type === "rma") {
+        itemConfig = globalSettings.rmaConfig?.analysisApi || {};
     }
 
     // 设置标题
@@ -411,6 +417,25 @@ export async function saveConfig() {
         // 更新显示
         if (updatePlotOptimizeModelDisplayFn) updatePlotOptimizeModelDisplayFn();
         Logger.log(`剧情优化配置已保存`);
+    } else if (currentEditingType === "rma") {
+        const rmaAnalysisApi = {
+            apiFormat: format,
+            apiUrl: urlEl?.value || "",
+            apiKey: keyEl?.value || "",
+            model: modelEl?.value || "",
+            maxTokens: parseInt(maxTokensEl?.value || "1500", 10),
+            temperature: parseFloat(temperatureEl?.value || "0.3"),
+            customTemplate: customTemplateEl?.value || "",
+            responsePath: responsePathEl?.value || "choices.0.message.content",
+        };
+        // 使用 RMA 自带的配置更新函数
+        const config = loadConfig();
+        if (!config.global.rmaConfig) config.global.rmaConfig = {};
+        config.global.rmaConfig.analysisApi = rmaAnalysisApi;
+        savePluginConfig(config);
+        // 更新显示
+        if (updateRmaModelDisplayFn) updateRmaModelDisplayFn();
+        Logger.log(`RMA 分析配置已保存`);
     }
 
     Logger.log(`配置已保存: ${currentEditingCategory}`);
@@ -514,18 +539,8 @@ export async function fetchModels() {
         return;
     }
 
-    // 自动补全 /v1/models
-    let modelsUrl = apiUrl;
-    if (apiUrl.endsWith("/v1") || apiUrl.endsWith("/v1/")) {
-        modelsUrl = apiUrl.replace(/\/v1\/?$/, "/v1/models");
-    } else if (apiUrl.includes("/v1/chat/completions")) {
-        modelsUrl = apiUrl.replace("/v1/chat/completions", "/v1/models");
-    } else if (apiUrl.includes("/chat/completions")) {
-        modelsUrl = apiUrl.replace("/chat/completions", "/models");
-    } else if (!apiUrl.includes("/models")) {
-        // 尝试添加 /v1/models
-        modelsUrl = apiUrl.replace(/\/?$/, "") + "/v1/models";
-    }
+    // 统一的反代兼容模型列表 URL 构造
+    let modelsUrl = buildOpenAIModelsUrl(apiUrl);
 
     // 显示加载状态
     fetchBtn.classList.add("mm-loading-models");

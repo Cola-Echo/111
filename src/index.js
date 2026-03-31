@@ -1,6 +1,6 @@
 /**
  * 记忆管理并发系统 - 主入口
- * @version 0.4.9
+ * @version 0.6.0
  * @author 可乐、繁华
  * @license CC BY-NC-ND 4.0
  * @see https://github.com/Cola-Echo/memory-manager-concurrent
@@ -69,6 +69,7 @@ import {
     setMessageProgressPanel,
     setOpenIndexMergeConfigModalFunction,
     setOpenPlotOptimizeConfigModalFunction,
+    setOpenRmaConfigModalFunction,
     setPlotPanelProgressTracker,
     setPromptEditorFunctions,
     setRefreshAIConfigListFunction,
@@ -96,6 +97,8 @@ import {
     // 模型显示更新
     updateIndexMergeModelDisplay,
     updatePlotOptimizeModelDisplay,
+    // RMA 关系记忆
+    updateRmaModelDisplay,
     // 总结世界书拆分配置弹窗
     setSummaryPartConfigModalFunction,
     showSummaryPartConfigModal,
@@ -129,8 +132,19 @@ import {
 // 表格填表模块
 import { initTableFiller } from "@table-filler/index";
 
+// RMA 关系记忆系统
+import {
+    isRmaEnabled,
+    hasRmaConfig,
+    initRmaState,
+    getCurrentRmaConfig,
+    registerRmaEventListeners,
+    initRmaPanel,
+    showRmaPanel,
+} from "@rma";
+
 // 版本信息
-const VERSION = "0.4.9";
+const VERSION = "0.6.0";
 
 // 面板状态
 let isPanelVisible = false;
@@ -252,6 +266,9 @@ async function initPlugin() {
         setOpenPlotOptimizeConfigModalFunction(() =>
             showConfigModal("剧情优化", "plot"),
         );
+        setOpenRmaConfigModalFunction(() =>
+            showConfigModal("RMA分析", "rma"),
+        );
 
         // 设置更新列表清空函数
         setClearUpdatesListFunction(clearUpdatesList);
@@ -264,6 +281,7 @@ async function initPlugin() {
             updateIndexMergeModelDisplay,
             updatePlotOptimizeModelDisplay,
             refreshAIConfigList,
+            updateRmaModelDisplay,
         );
 
         // 设置总结世界书拆分配置弹窗函数
@@ -359,6 +377,13 @@ async function initUI() {
             });
         }, 3000);
 
+        // 初始化 RMA 关系记忆系统（延迟以确保角色数据加载完成）
+        setTimeout(() => {
+            initRmaModule().catch((e) => {
+                Logger.debug("RMA 模块初始化失败:", e);
+            });
+        }, 2000);
+
         Logger.log("UI 初始化完成");
     } catch (error) {
         Logger.error("UI 初始化失败:", error);
@@ -431,6 +456,9 @@ function registerEventListeners() {
         }
 
         Logger.log("已注册事件监听");
+
+        // 注册 RMA 事件监听（MESSAGE_RECEIVED / MESSAGE_DELETED）
+        registerRmaEventListeners();
     } else {
         Logger.warn("事件系统不可用，使用延迟初始化");
         // 延迟安装钩子
@@ -439,6 +467,37 @@ function registerEventListeners() {
                 hookSendButton();
             }
         }, 3000);
+    }
+}
+
+/**
+ * 初始化 RMA 关系记忆系统
+ */
+async function initRmaModule() {
+    try {
+        if (!isRmaEnabled()) {
+            Logger.debug("RMA 未启用");
+            return;
+        }
+
+        if (!hasRmaConfig()) {
+            Logger.debug("当前角色无 RMA 配置");
+            return;
+        }
+
+        const config = getCurrentRmaConfig();
+        if (config) {
+            // 初始化 RMA 状态（如果首次使用）
+            initRmaState(config);
+
+            // 初始化悬浮面板
+            await initRmaPanel();
+            showRmaPanel();
+
+            Logger.log("RMA 模块初始化完成");
+        }
+    } catch (e) {
+        Logger.debug("RMA 模块初始化失败:", e);
     }
 }
 

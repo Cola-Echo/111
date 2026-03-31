@@ -94,6 +94,7 @@ let loadConfigCharDescriptionFn = null;
 let hasImportedSummaryBooksFn = null;
 let openIndexMergeConfigModalFn = null;
 let openPlotOptimizeConfigModalFn = null;
+let openRmaConfigModalFn = null;
 let clearUpdatesListFn = null;
 let initFlowConfigResizeFn = null;
 let updateMemorySearchBadgeFn = null;
@@ -140,6 +141,7 @@ export function setLoadConfigCharDescriptionFunction(fn) { loadConfigCharDescrip
 export function setHasImportedSummaryBooksFunction(fn) { hasImportedSummaryBooksFn = fn; }
 export function setOpenIndexMergeConfigModalFunction(fn) { openIndexMergeConfigModalFn = fn; }
 export function setOpenPlotOptimizeConfigModalFunction(fn) { openPlotOptimizeConfigModalFn = fn; }
+export function setOpenRmaConfigModalFunction(fn) { openRmaConfigModalFn = fn; }
 export function setClearUpdatesListFunction(fn) { clearUpdatesListFn = fn; }
 export function setInitFlowConfigResizeFunction(fn) { initFlowConfigResizeFn = fn; }
 export function setLoadWorldbookControlListFunction(fn) { /* 已有本地实现 */ }
@@ -814,6 +816,87 @@ function bindSettingsEvents() {
                 showConfigModalFn(category);
             }
         });
+
+    // ==================== RMA 关系记忆系统 ====================
+
+    // RMA 折叠卡片
+    document
+        .getElementById("mm-rma-toggle")
+        ?.addEventListener("click", () => {
+            const card = document.getElementById("mm-rma-card");
+            if (card) card.classList.toggle("expanded");
+        });
+
+    // RMA 启用开关
+    document
+        .getElementById("mm-rma-enabled")
+        ?.addEventListener("change", (e) => {
+            const checked = e.target.checked;
+            import("@rma").then(({ updateRmaConfig }) => {
+                updateRmaConfig({ enabled: checked });
+            });
+            updateRmaBadge(checked);
+            if (typeof toastr !== 'undefined') {
+                toastr.success(`RMA 关系记忆系统已${checked ? "启用" : "禁用"}`, "记忆管理并发系统");
+            }
+        });
+
+    // RMA 确认模式
+    document
+        .getElementById("mm-rma-confirmation-mode")
+        ?.addEventListener("change", (e) => {
+            const mode = e.target.value;
+            import("@rma").then(({ updateRmaConfig }) => {
+                updateRmaConfig({ confirmationMode: mode });
+            });
+        });
+
+    // RMA 面板默认状态
+    document
+        .getElementById("mm-rma-panel-state")
+        ?.addEventListener("change", (e) => {
+            const state = e.target.value;
+            import("@rma").then(({ updateRmaConfig }) => {
+                updateRmaConfig({ floatPanel: { defaultState: state } });
+            });
+        });
+
+    // RMA API 配置编辑按钮
+    document
+        .getElementById("mm-rma-edit")
+        ?.addEventListener("click", () => {
+            if (openRmaConfigModalFn) openRmaConfigModalFn();
+        });
+}
+
+/**
+ * 更新 RMA 徽章状态
+ * @param {boolean} enabled
+ */
+export function updateRmaBadge(enabled) {
+    const badge = document.getElementById("mm-rma-badge");
+    if (badge) {
+        if (enabled) {
+            badge.textContent = "开启";
+            badge.classList.add("active");
+        } else {
+            badge.textContent = "关闭";
+            badge.classList.remove("active");
+        }
+    }
+}
+
+/**
+ * 更新 RMA 模型显示
+ */
+export function updateRmaModelDisplay() {
+    import("@rma").then(({ getRmaAnalysisApiConfig }) => {
+        const config = getRmaAnalysisApiConfig();
+        const displayEl = document.getElementById("mm-rma-model-display");
+        if (displayEl) {
+            displayEl.textContent = config?.model || "未配置";
+        }
+    });
 }
 
 /**
@@ -1622,6 +1705,27 @@ export function loadGlobalSettingsUI() {
 
     // 初始化表格填表 UI
     initTableFillerUI();
+
+    // ==================== RMA 关系记忆系统 ====================
+    const rmaConfig = settings.rmaConfig || {};
+    const rmaEnabledCheckbox = document.getElementById("mm-rma-enabled");
+    if (rmaEnabledCheckbox) {
+        rmaEnabledCheckbox.checked = rmaConfig.enabled === true;
+    }
+    updateRmaBadge(rmaConfig.enabled === true);
+
+    const rmaConfirmationMode = document.getElementById("mm-rma-confirmation-mode");
+    if (rmaConfirmationMode) {
+        rmaConfirmationMode.value = rmaConfig.confirmationMode || "every_turn";
+    }
+
+    const rmaPanelState = document.getElementById("mm-rma-panel-state");
+    if (rmaPanelState) {
+        rmaPanelState.value = rmaConfig.floatPanel?.defaultState || "half_collapsed";
+    }
+
+    // 更新 RMA 模型显示
+    updateRmaModelDisplay();
 }
 
 /**

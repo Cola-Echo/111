@@ -113,6 +113,25 @@ export const defaultConfig = Object.freeze({
             minChars: 40000,                   // 最小字符数（确保段落完整）
             maxChars: 60000,                   // 最大字符数（确保段落完整）
         },
+        // RMA 关系记忆系统配置
+        rmaConfig: {
+            enabled: false,                    // 全局开关
+            confirmationMode: 'every_turn',    // every_turn | important_only | auto
+            analysisApi: {
+                apiFormat: 'openai',
+                apiUrl: '',
+                apiKey: '',
+                model: '',
+                maxTokens: 1500,
+                temperature: 0.3,
+                customTemplate: '',
+                responsePath: 'choices.0.message.content',
+            },
+            floatPanel: {
+                defaultState: 'half_collapsed', // expanded | half_collapsed | minimized
+                position: { x: 'right', y: 'top' },
+            },
+        },
     },
     memoryConfigs: {},
     summaryConfigs: {},
