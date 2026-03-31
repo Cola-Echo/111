@@ -4,6 +4,7 @@
  */
 
 import Logger from '@core/logger';
+import { buildGoogleUrl } from '@utils/url-builder';
 
 /**
  * 模拟流式进度管理器
@@ -82,11 +83,8 @@ export async function callGoogle(config, systemPrompt, userMessage, signal = nul
     const { apiKey, model, maxTokens, temperature } = config;
     let { apiUrl } = config;
 
-    // Google API URL 格式: https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent
-    if (!apiUrl.includes("/models")) {
-        apiUrl = apiUrl.replace(/\/?$/, "/models");
-    }
-    const url = `${apiUrl}/${model}:generateContent?key=${apiKey}`;
+    // 统一的反代兼容 URL 构造
+    const url = buildGoogleUrl(apiUrl, model, apiKey);
 
     // Google API 不支持流式，使用模拟进度
     let progressManager = null;

@@ -14,6 +14,7 @@ import {
 import { defaultMultiAIProvider } from '@config/default-config';
 import { APIAdapter } from '@api/adapter';
 import { getPromptPresets, showPromptPresetModal, getPromptPresetById } from './prompt-preset';
+import { buildOpenAIModelsUrl } from '@utils/url-builder';
 
 const log = Logger.createModuleLogger('多AI配置');
 
@@ -457,13 +458,9 @@ export function showMultiAIConfigModal(providerId = null) {
 async function fetchModels(apiUrl, apiKey, format) {
     let modelsUrl = apiUrl;
 
-    // 构建模型列表URL
+    // 统一的反代兼容模型列表 URL 构造
     if (format === 'openai') {
-        if (apiUrl.endsWith('/v1') || apiUrl.endsWith('/v1/')) {
-            modelsUrl = apiUrl.replace(/\/v1\/?$/, '/v1/models');
-        } else if (!apiUrl.includes('/models')) {
-            modelsUrl = apiUrl.replace(/\/?$/, '/models');
-        }
+        modelsUrl = buildOpenAIModelsUrl(apiUrl);
     } else {
         // 其他格式暂不支持获取模型列表
         throw new Error('此API格式不支持获取模型列表，请手动输入模型名称');

@@ -4,6 +4,7 @@
  */
 
 import Logger from '@core/logger';
+import { buildAnthropicUrl } from '@utils/url-builder';
 
 /**
  * 模拟流式进度管理器
@@ -90,12 +91,8 @@ export async function callAnthropic(config, systemPrompt, userMessage, signal = 
     const { apiKey, model, maxTokens, temperature } = config;
     let { apiUrl } = config;
 
-    // 自动补全 /v1/messages
-    if (apiUrl.endsWith("/v1") || apiUrl.endsWith("/v1/")) {
-        apiUrl = apiUrl.replace(/\/v1\/?$/, "/v1/messages");
-    } else if (!apiUrl.includes("/messages")) {
-        apiUrl = apiUrl.replace(/\/?$/, "/v1/messages");
-    }
+    // 统一的反代兼容 URL 构造
+    apiUrl = buildAnthropicUrl(apiUrl);
 
     const response = await fetch(apiUrl, {
         method: "POST",

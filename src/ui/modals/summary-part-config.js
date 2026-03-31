@@ -12,6 +12,7 @@ import {
 import { refreshWorldBookList, getSummaryParts } from "@worldbook/refresh";
 import { formatCharCount } from "@worldbook/summary-splitter";
 import APIAdapter from "@api/adapter";
+import { buildOpenAIModelsUrl } from "@utils/url-builder";
 
 /**
  * 从API获取模型列表
@@ -23,17 +24,9 @@ import APIAdapter from "@api/adapter";
 async function fetchModelsFromApi(apiUrl, apiKey, format) {
     let modelsUrl = apiUrl;
 
-    // 构建模型列表URL
+    // 统一的反代兼容模型列表 URL 构造
     if (format === 'openai') {
-        if (apiUrl.endsWith('/v1') || apiUrl.endsWith('/v1/')) {
-            modelsUrl = apiUrl.replace(/\/v1\/?$/, '/v1/models');
-        } else if (apiUrl.includes('/v1/chat/completions')) {
-            modelsUrl = apiUrl.replace('/v1/chat/completions', '/v1/models');
-        } else if (apiUrl.includes('/chat/completions')) {
-            modelsUrl = apiUrl.replace('/chat/completions', '/models');
-        } else if (!apiUrl.includes('/models')) {
-            modelsUrl = apiUrl.replace(/\/?$/, '/models');
-        }
+        modelsUrl = buildOpenAIModelsUrl(apiUrl);
     } else if (format === 'anthropic') {
         // Anthropic 不支持获取模型列表，返回常用模型
         return [
@@ -190,7 +183,7 @@ export function showSummaryPartConfigModal(bookName, partId) {
                     <div class="mm-form-group">
                         <label>API URL <span class="mm-required">*</span></label>
                         <input type="text" id="mm-part-api-url" placeholder="https://api.deepseek.com/v1" value="${escapeHtml(savedConfig.apiUrl || '')}">
-                        <small class="mm-hint">填写到 /v1 即可，会自动补全完整路径</small>
+                        <small class="mm-hint">填写到 /v1 即可，支持反代路径如 /Gemini/v1</small>
                     </div>
 
                     <!-- API Key -->

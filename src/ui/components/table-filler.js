@@ -25,6 +25,7 @@ import {
 import { disableTableFiller, reinitTableFiller } from "@table-filler/index";
 import { APIAdapter } from "@api/adapter";
 import { bindIndependentTemplateEvents } from "@ui/modals/independent-template-modal";
+import { buildOpenAIModelsUrl } from "@utils/url-builder";
 
 const log = Logger.createModuleLogger('Amily表格并发');
 
@@ -783,12 +784,9 @@ async function handleFetchModels() {
 async function fetchModelsFromApi(apiUrl, apiKey, format) {
     let modelsUrl = apiUrl;
 
+    // 统一的反代兼容模型列表 URL 构造
     if (format === "openai") {
-        if (apiUrl.endsWith("/v1") || apiUrl.endsWith("/v1/")) {
-            modelsUrl = apiUrl.replace(/\/v1\/?$/, "/v1/models");
-        } else if (!apiUrl.includes("/models")) {
-            modelsUrl = apiUrl.replace(/\/?$/, "/models");
-        }
+        modelsUrl = buildOpenAIModelsUrl(apiUrl);
     } else {
         throw new Error("此API格式不支持获取模型列表");
     }

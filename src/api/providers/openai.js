@@ -4,6 +4,8 @@
  * @module api/providers/openai
  */
 
+import { buildOpenAIChatUrl } from '@utils/url-builder';
+
 /**
  * 模拟流式进度管理器
  * 使用检查点驱动的进度增长，模拟真实的流式传输体验
@@ -237,15 +239,8 @@ export async function callOpenAI(
     const { apiKey, model, maxTokens, temperature } = config;
     let { apiUrl } = config;
 
-    // 自动补全 /chat/completions
-    if (apiUrl.endsWith("/v1") || apiUrl.endsWith("/v1/")) {
-        apiUrl = apiUrl.replace(/\/v1\/?$/, "/v1/chat/completions");
-    } else if (
-        !apiUrl.includes("/chat/completions") &&
-        !apiUrl.includes("/completions")
-    ) {
-        apiUrl = apiUrl.replace(/\/?$/, "/chat/completions");
-    }
+    // 统一的反代兼容 URL 构造
+    apiUrl = buildOpenAIChatUrl(apiUrl);
 
     const headers = { "Content-Type": "application/json" };
     if (apiKey) {
@@ -357,15 +352,8 @@ export async function callOpenAIWithMessages(
     const { apiKey, model, maxTokens, temperature } = config;
     let { apiUrl } = config;
 
-    // 自动补全 /chat/completions
-    if (apiUrl.endsWith("/v1") || apiUrl.endsWith("/v1/")) {
-        apiUrl = apiUrl.replace(/\/v1\/?$/, "/v1/chat/completions");
-    } else if (
-        !apiUrl.includes("/chat/completions") &&
-        !apiUrl.includes("/completions")
-    ) {
-        apiUrl = apiUrl.replace(/\/?$/, "/chat/completions");
-    }
+    // 统一的反代兼容 URL 构造
+    apiUrl = buildOpenAIChatUrl(apiUrl);
 
     const headers = { "Content-Type": "application/json" };
     if (apiKey) {

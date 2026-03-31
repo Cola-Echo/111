@@ -7,6 +7,7 @@ import Logger from '@core/logger';
 import { StreamingHandler } from './streaming-handler';
 import { getEnabledProviders } from '@config/config-manager';
 import { buildMessagesFromPreset, getPromptPresetById } from '@ui/modals/prompt-preset';
+import { buildOpenAIChatUrl, buildAnthropicUrl } from '@utils/url-builder';
 
 const log = Logger.createModuleLogger('多AI生成');
 
@@ -225,18 +226,12 @@ export class MultiAIGenerator {
     async callProvider(provider, messages, signal, onChunk) {
         const { apiFormat, apiUrl, apiKey, model, maxTokens, temperature, streaming } = provider;
 
-        // 构建请求URL
+        // 构建请求URL（统一的反代兼容 URL 构造）
         let requestUrl = apiUrl;
         if (apiFormat === 'openai') {
-            if (apiUrl.endsWith('/v1') || apiUrl.endsWith('/v1/')) {
-                requestUrl = apiUrl.replace(/\/v1\/?$/, '/v1/chat/completions');
-            } else if (!apiUrl.includes('/chat/completions') && !apiUrl.includes('/completions')) {
-                requestUrl = apiUrl.replace(/\/?$/, '/chat/completions');
-            }
+            requestUrl = buildOpenAIChatUrl(apiUrl);
         } else if (apiFormat === 'anthropic') {
-            if (!apiUrl.includes('/messages')) {
-                requestUrl = apiUrl.replace(/\/?$/, '/messages');
-            }
+            requestUrl = buildAnthropicUrl(apiUrl);
         } else if (apiFormat === 'google') {
             // Google Gemini API
             if (!apiUrl.includes(':generateContent')) {
